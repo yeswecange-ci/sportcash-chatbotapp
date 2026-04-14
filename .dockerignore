@@ -1,0 +1,14 @@
+node_modules
+vendor
+.git
+.env
+.env.backup
+.env.production
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/imports/*
+tests
+.vscode
+.idea

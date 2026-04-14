@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide d'intégration – Bot Tracking TotalEnergies CI</title>
+<style>
+  :root {
+    --red: #E2001A;
+    --red-dark: #a10012;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --blue: #1d4ed8;
+    --green: #15803d;
+    --amber: #b45309;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    color: var(--gray-900);
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(160deg, var(--red) 0%, #6b0008 100%);
+    color: #fff;
+    text-align: center;
+    page-break-after: always;
+    padding: 60px 40px;
+  }
+  .cover-logo {
+    font-size: 56px;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+  }
+  .cover h1 {
+    font-size: 28pt;
+    font-weight: 800;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .cover .subtitle {
+    font-size: 14pt;
+    opacity: 0.85;
+    margin-bottom: 40px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    opacity: 0.7;
+    border-top: 1px solid rgba(255,255,255,0.3);
+    padding-top: 24px;
+    width: 100%;
+    max-width: 500px;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 6px 20px;
+    font-size: 10pt;
+    margin-bottom: 32px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── TOC ── */
+  .toc-page {
+    padding: 60px 60px 40px;
+    page-break-after: always;
+  }
+  .toc-page h2 {
+    font-size: 18pt;
+    color: var(--red);
+    border-bottom: 3px solid var(--red);
+    padding-bottom: 8px;
+    margin-bottom: 28px;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    display: flex;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--gray-200);
+  }
+  .toc-list li span:first-child {
+    font-weight: 600;
+    color: var(--red);
+    min-width: 30px;
+  }
+  .toc-list li span:last-child {
+    margin-left: auto;
+    color: var(--gray-600);
+    font-size: 10pt;
+  }
+  .toc-sub {
+    padding-left: 24px;
+    font-size: 10pt;
+    color: var(--gray-600);
+  }
+
+  /* ── CONTENT ── */
+  .page {
+    padding: 50px 60px;
+    page-break-before: always;
+  }
+
+  h1.section-title {
+    font-size: 20pt;
+    color: #fff;
+    background: var(--red);
+    margin: -50px -60px 40px;
+    padding: 24px 60px;
+    font-weight: 800;
+  }
+  h1.section-title span {
+    display: block;
+    font-size: 10pt;
+    font-weight: 400;
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  h2 {
+    font-size: 14pt;
+    color: var(--red);
+    margin-top: 32px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--gray-100);
+  }
+
+  h3 {
+    font-size: 12pt;
+    color: var(--gray-700);
+    margin-top: 22px;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  p { margin-bottom: 10px; }
+
+  /* ── ENDPOINT CARD ── */
+  .endpoint-card {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    margin: 16px 0;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .endpoint-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .method {
+    font-size: 9pt;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    color: #fff;
+    background: var(--blue);
+    flex-shrink: 0;
+  }
+  .method.post { background: #15803d; }
+  .method.get  { background: #1d4ed8; }
+  .url {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10pt;
+    font-weight: 700;
+    color: var(--gray-900);
+    flex: 1;
+    word-break: break-all;
+  }
+  .endpoint-body { padding: 12px 16px; }
+  .endpoint-desc {
+    font-size: 10pt;
+    color: var(--gray-600);
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  /* ── PARAMS TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin: 8px 0 16px;
+  }
+  th {
+    background: var(--gray-100);
+    text-align: left;
+    padding: 7px 10px;
+    font-weight: 700;
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-200);
+  }
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  .param-name {
+    font-family: 'Consolas', monospace;
+    font-weight: 700;
+    color: var(--blue);
+    font-size: 9pt;
+  }
+  .required { color: var(--red); font-size: 8pt; font-weight: 700; }
+  .optional { color: var(--gray-600); font-size: 8pt; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.7;
+    margin: 10px 0 16px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .code-comment { color: #94a3b8; }
+  .code-key { color: #7dd3fc; }
+  .code-string { color: #86efac; }
+  .code-number { color: #fbbf24; }
+  .code-keyword { color: #f472b6; }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    page-break-inside: avoid;
+    font-size: 10pt;
+  }
+  .callout-info    { background: #eff6ff; border-left: 4px solid #2563eb; }
+  .callout-warning { background: #fffbeb; border-left: 4px solid #d97706; }
+  .callout-success { background: #f0fdf4; border-left: 4px solid #16a34a; }
+  .callout-danger  { background: #fff1f2; border-left: 4px solid var(--red); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* ── FLOW DIAGRAM (text-based) ── */
+  .flow-diagram {
+    font-family: 'Consolas', monospace;
+    font-size: 9pt;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 16px;
+    line-height: 2;
+    margin: 12px 0;
+    color: var(--gray-700);
+    page-break-inside: avoid;
+  }
+  .flow-arrow { color: var(--red); font-weight: bold; }
+  .flow-box {
+    display: inline-block;
+    border: 1px solid var(--gray-600);
+    border-radius: 4px;
+    padding: 1px 8px;
+    background: #fff;
+  }
+  .flow-api {
+    display: inline-block;
+    border: 2px solid var(--red);
+    border-radius: 4px;
+    padding: 1px 8px;
+    background: #fff0f0;
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  /* ── STEP BADGES ── */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin: 14px 0;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    background: var(--red);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 10pt;
+    margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-content h4 { font-size: 10.5pt; margin-bottom: 4px; color: var(--gray-900); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+  .badge-red    { background: #ffe0e0; color: var(--red); }
+  .badge-green  { background: #dcfce7; color: #15803d; }
+  .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+  .badge-gray   { background: #f3f4f6; color: #374151; }
+  .badge-amber  { background: #fef3c7; color: #92400e; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { font-size: 10pt; }
+    .cover { height: 100vh; }
+    .page { padding: 40px 50px; }
+    h1.section-title { margin: -40px -50px 32px; padding: 20px 50px; }
+    .code-block { font-size: 8pt; }
+    table { font-size: 8.5pt; }
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     PAGE DE COUVERTURE
+════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">⛽</div>
+  <div class="cover-badge">DOCUMENTATION TECHNIQUE</div>
+  <h1>Guide d'intégration<br>Bot Tracking API</h1>
+  <p class="subtitle">Comment connecter votre Twilio Studio Flow<br>au système de tracking TotalEnergies CI</p>
+  <div class="meta">
+    <p><strong>Application</strong> : TotalEnergies CI – Support Client WhatsApp</p>
+    <p><strong>Version</strong> : 2.0 — Architecture dynamique</p>
+    <p><strong>Date</strong> : Mars 2026</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TABLE DES MATIÈRES
+════════════════════════════════════ -->
+<div class="toc-page">
+  <h2>Table des matières</h2>
+  <ul class="toc-list">
+    <li><span>1</span><span>Architecture générale du système</span><span>3</span></li>
+    <li><span>2</span><span>Référence des endpoints</span><span>4</span></li>
+    <li class="toc-sub"><span></span><span>2.1 — Réception message entrant (point d'entrée)</span><span>4</span></li>
+    <li class="toc-sub"><span></span><span>2.2 — Enregistrement choix de menu</span><span>5</span></li>
+    <li class="toc-sub"><span></span><span>2.3 — Saisie libre / collecte de données</span><span>6</span></li>
+    <li class="toc-sub"><span></span><span>2.4 — Finaliser une conversation</span><span>7</span></li>
+    <li class="toc-sub"><span></span><span>2.5 — Événement générique (universel)</span><span>8</span></li>
+    <li><span>3</span><span>Intégration dans le Flow principal</span><span>9</span></li>
+    <li><span>4</span><span>Intégration dans les Subflows</span><span>11</span></li>
+    <li><span>5</span><span>Cas d'usage complets (exemples)</span><span>13</span></li>
+    <li><span>6</span><span>Données retournées — utilisation dans le flow</span><span>15</span></li>
+    <li><span>7</span><span>Bonnes pratiques &amp; erreurs fréquentes</span><span>16</span></li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 1 — ARCHITECTURE
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">1 — Architecture générale du système
+    <span>Vue d'ensemble des composants et du flux de données</span>
+  </h1>
+
+  <p>Le système de tracking fonctionne comme une <strong>couche d'observation passive</strong> : votre Twilio Studio Flow continue de piloter la conversation normalement, et appelle l'API à chaque étape importante pour mémoriser ce qui se passe.</p>
+
+  <div class="flow-diagram">
+    <div>👤 <span class="flow-box">Utilisateur WhatsApp</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> Message entrant</div>
+    <div>📡 <span class="flow-box">Twilio Studio – Flow principal</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> HTTP Request Widget</div>
+    <div>🔴 <span class="flow-api">POST /bot-tracking/twilio/incoming</span> ← <em>TOUJOURS en 1er</em></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> Retourne conversation_id, is_client…</div>
+    <div>📡 <span class="flow-box">Flow principal continue (menus, conditions…)</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> À chaque choix de menu</div>
+    <div>🔴 <span class="flow-api">POST /bot-tracking/twilio/menu-choice</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> Transfert vers un Subflow</div>
+    <div>📡 <span class="flow-box">Subflow (ex: Assistance Dépannage)</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> Collecte d'infos (VIN, email…)</div>
+    <div>🔴 <span class="flow-api">POST /bot-tracking/twilio/free-input</span></div>
+    <div style="padding-left:24px"><span class="flow-arrow">↓</span> Fin du Subflow / fin de conversation</div>
+    <div>🔴 <span class="flow-api">POST /bot-tracking/twilio/complete</span></div>
+  </div>
+
+  <h2>URL de base</h2>
+
+  <div class="callout callout-info">
+    <strong>Base URL (production Coolify)</strong>
+    Remplacez <code>https://votre-domaine.com</code> par votre domaine configuré dans Coolify.<br>
+    Tous les endpoints sont en <strong>HTTP POST</strong> sauf indication contraire.<br>
+    Aucune authentification requise (les endpoints webhook sont publics mais protégés par Twilio).
+  </div>
+
+  <div class="code-block">
+    <span class="code-comment"># Base URL</span><br>
+    https://votre-domaine.com<br><br>
+    <span class="code-comment"># 4 endpoints principaux</span><br>
+    <span class="code-key">POST</span> <span class="code-string">/bot-tracking/twilio/incoming</span><br>
+    <span class="code-key">POST</span> <span class="code-string">/bot-tracking/twilio/menu-choice</span><br>
+    <span class="code-key">POST</span> <span class="code-string">/bot-tracking/twilio/free-input</span><br>
+    <span class="code-key">POST</span> <span class="code-string">/bot-tracking/twilio/complete</span><br><br>
+    <span class="code-comment"># Endpoint générique (optionnel)</span><br>
+    <span class="code-key">POST</span> <span class="code-string">/bot-tracking/webhooks/event</span>
+  </div>
+
+  <h2>Principe de fonctionnement</h2>
+
+  <table>
+    <tr>
+      <th>Quand ?</th>
+      <th>Quel endpoint ?</th>
+      <th>Ce que ça fait</th>
+    </tr>
+    <tr>
+      <td>Arrivée d'un message WhatsApp</td>
+      <td><code>/twilio/incoming</code></td>
+      <td>Crée ou reprend la conversation, retourne le contexte client</td>
+    </tr>
+    <tr>
+      <td>L'utilisateur choisit un menu</td>
+      <td><code>/twilio/menu-choice</code></td>
+      <td>Enregistre le choix dans les stats et l'historique</td>
+    </tr>
+    <tr>
+      <td>L'utilisateur tape du texte libre</td>
+      <td><code>/twilio/free-input</code></td>
+      <td>Stocke le texte, met à jour les données client</td>
+    </tr>
+    <tr>
+      <td>Fin de conversation / subflow terminé</td>
+      <td><code>/twilio/complete</code></td>
+      <td>Clôture la conversation, calcule la durée</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 2 — RÉFÉRENCE ENDPOINTS
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">2 — Référence des endpoints
+    <span>Paramètres, exemples et réponses pour chaque endpoint</span>
+  </h1>
+
+  <!-- 2.1 INCOMING -->
+  <h2>2.1 — Réception message entrant</h2>
+  <p>C'est le <strong>point d'entrée obligatoire</strong>. À appeler dès qu'un message WhatsApp arrive, avant tout autre traitement.</p>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="url">/bot-tracking/twilio/incoming</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="endpoint-desc">Crée une nouvelle conversation ou reprend une conversation active (moins de 24h). Retourne le contexte complet du client pour conditionner le flow.</p>
+
+      <h3>Paramètres</h3>
+      <table>
+        <tr><th>Paramètre</th><th>Type</th><th>Obligatoire</th><th>Description</th></tr>
+        <tr><td class="param-name">From</td><td>string</td><td><span class="required">OUI</span></td><td>Numéro expéditeur Twilio. Format : <code>whatsapp:+2250700000000</code></td></tr>
+        <tr><td class="param-name">Body</td><td>string</td><td><span class="optional">non</span></td><td>Texte du message reçu</td></tr>
+        <tr><td class="param-name">MessageSid</td><td>string</td><td><span class="required">OUI</span></td><td>Identifiant unique du message Twilio (anti-doublon)</td></tr>
+        <tr><td class="param-name">ProfileName</td><td>string</td><td><span class="optional">non</span></td><td>Nom WhatsApp de l'utilisateur</td></tr>
+        <tr><td class="param-name">NumMedia</td><td>integer</td><td><span class="optional">non</span></td><td>Nombre de médias joints (images, audio…)</td></tr>
+      </table>
+
+      <div class="callout callout-info">
+        <strong>💡 Dans Twilio Studio</strong>
+        Ces paramètres sont disponibles automatiquement via les variables Twilio : <code>{{trigger.message.From}}</code>, <code>{{trigger.message.Body}}</code>, <code>{{trigger.message.MessageSid}}</code>, etc.
+      </div>
+
+      <h3>Exemple de requête (HTTP Widget)</h3>
+      <div class="code-block">
+<span class="code-comment">// Configuration du widget "Make HTTP Request" dans Studio</span><br>
+URL    : https://votre-domaine.com/bot-tracking/twilio/incoming<br>
+Method : POST<br>
+Content-Type : application/x-www-form-urlencoded<br><br>
+<span class="code-comment">// Body Parameters</span><br>
+From         = {{trigger.message.From}}<br>
+Body         = {{trigger.message.Body}}<br>
+MessageSid   = {{trigger.message.MessageSid}}<br>
+ProfileName  = {{trigger.message.ProfileName}}<br>
+NumMedia     = {{trigger.message.NumMedia}}
+      </div>
+
+      <h3>Réponse JSON</h3>
+      <div class="code-block">
+{<br>
+&nbsp;&nbsp;<span class="code-key">"success"</span>: <span class="code-keyword">true</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"conversation_id"</span>: <span class="code-number">142</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"session_id"</span>: <span class="code-string">"session_6789abc..."</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"is_client"</span>: <span class="code-string">"true"</span>,        <span class="code-comment">// "true" | "false" | null</span><br>
+&nbsp;&nbsp;<span class="code-key">"client_full_name"</span>: <span class="code-string">"KONAN Yao Bernard"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"current_menu"</span>: <span class="code-string">"main_menu"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_has_name"</span>: <span class="code-string">"true"</span>,    <span class="code-comment">// pour condition Twilio</span><br>
+&nbsp;&nbsp;<span class="code-key">"client_status_known"</span>: <span class="code-string">"false"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"has_media"</span>: <span class="code-string">"false"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"status"</span>: <span class="code-string">"active"</span><br>
+}
+      </div>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ Important : is_client est une chaîne, pas un booléen</strong>
+        Twilio Studio compare les variables comme des chaînes de caractères. Utilisez <code>"true"</code> et <code>"false"</code> entre guillemets dans vos conditions de Split widget.
+      </div>
+
+      <h3>Utilisation des variables retournées dans le flow</h3>
+      <div class="code-block">
+<span class="code-comment">// Accéder aux données retournées (nom du widget : "track_incoming")</span><br>
+{{widgets.track_incoming.parsed.conversation_id}}<br>
+{{widgets.track_incoming.parsed.is_client}}<br>
+{{widgets.track_incoming.parsed.client_full_name}}<br>
+{{widgets.track_incoming.parsed.client_has_name}}<br>
+{{widgets.track_incoming.parsed.client_status_known}}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.2 MENU CHOICE -->
+  <h2>2.2 — Enregistrement choix de menu</h2>
+  <p>À appeler chaque fois que l'utilisateur fait un choix dans un menu (principal ou sous-menu). S'adapte à n'importe quel nom de menu dans votre flow.</p>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="url">/bot-tracking/twilio/menu-choice</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="endpoint-desc">Enregistre le choix de menu, met à jour le chemin de navigation et alimente les statistiques dynamiques.</p>
+
+      <h3>Paramètres</h3>
+      <table>
+        <tr><th>Paramètre</th><th>Type</th><th>Obligatoire</th><th>Description</th></tr>
+        <tr><td class="param-name">conversation_id</td><td>integer</td><td><span class="required">OUI</span></td><td>ID retourné par <code>/incoming</code></td></tr>
+        <tr><td class="param-name">menu_choice</td><td>string</td><td><span class="required">OUI</span></td><td>Identifiant technique du menu (ex: <code>menu_assistance</code>, <code>subflow_reclamation</code>). Libre, ce sera le nom dans les stats.</td></tr>
+        <tr><td class="param-name">user_input</td><td>string</td><td><span class="optional">non</span></td><td>Valeur brute choisie par l'utilisateur (ex: <code>"1"</code>, <code>"2"</code>)</td></tr>
+        <tr><td class="param-name">choice_label</td><td>string</td><td><span class="optional">non</span></td><td>Label lisible du choix (ex: <code>"Assistance dépannage"</code>). Affiché dans les stats du dashboard.</td></tr>
+      </table>
+
+      <h3>Exemple de requête</h3>
+      <div class="code-block">
+URL    : https://votre-domaine.com/bot-tracking/twilio/menu-choice<br>
+Method : POST<br><br>
+conversation_id = {{widgets.track_incoming.parsed.conversation_id}}<br>
+menu_choice     = menu_principal<br>
+user_input      = {{widgets.menu_principal.inbound.Body}}<br>
+choice_label    = Assistance dépannage
+      </div>
+
+      <h3>Réponse JSON</h3>
+      <div class="code-block">
+{<br>
+&nbsp;&nbsp;<span class="code-key">"success"</span>: <span class="code-keyword">true</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"current_menu"</span>: <span class="code-string">"menu_principal"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"menu_path"</span>: [<span class="code-string">"menu_principal"</span>]<br>
+}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.3 FREE INPUT -->
+  <h2>2.3 — Saisie libre / collecte de données</h2>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="url">/bot-tracking/twilio/free-input</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="endpoint-desc">Enregistre toute saisie libre de l'utilisateur. Certains noms de widget déclenchent automatiquement la mise à jour des données client (nom, email, VIN, carte VIP).</p>
+
+      <h3>Paramètres</h3>
+      <table>
+        <tr><th>Paramètre</th><th>Type</th><th>Obligatoire</th><th>Description</th></tr>
+        <tr><td class="param-name">conversation_id</td><td>integer</td><td><span class="required">OUI</span></td><td>ID retourné par <code>/incoming</code></td></tr>
+        <tr><td class="param-name">user_input</td><td>string</td><td><span class="optional">non</span></td><td>Texte saisi par l'utilisateur</td></tr>
+        <tr><td class="param-name">widget_name</td><td>string</td><td><span class="optional">non</span></td><td>Nom du widget Studio. Certains noms ont une signification spéciale (voir tableau ci-dessous).</td></tr>
+      </table>
+
+      <h3>Noms de widget avec traitement automatique</h3>
+      <table>
+        <tr><th>widget_name</th><th>Effet automatique</th></tr>
+        <tr><td class="param-name">collect_name</td><td>Sauvegarde le nom complet du client (ne remplace pas un nom existant)</td></tr>
+        <tr><td class="param-name">collect_email</td><td>Sauvegarde l'email du client</td></tr>
+        <tr><td class="param-name">collect_vin</td><td>Sauvegarde le numéro VIN du véhicule</td></tr>
+        <tr><td class="param-name">collect_carte_vip</td><td>Sauvegarde le numéro de carte VIP</td></tr>
+        <tr><td class="param-name">check_client</td><td>Marque le client comme client (<code>"1"</code>, <code>"oui"</code>, <code>"yes"</code>) ou non-client</td></tr>
+        <tr><td><em>autre nom</em></td><td>Enregistre la saisie dans l'historique sans autre effet</td></tr>
+      </table>
+
+      <h3>Exemple — Collecte du nom</h3>
+      <div class="code-block">
+URL    : https://votre-domaine.com/bot-tracking/twilio/free-input<br>
+Method : POST<br><br>
+conversation_id = {{widgets.track_incoming.parsed.conversation_id}}<br>
+user_input      = {{widgets.ask_name.inbound.Body}}<br>
+widget_name     = collect_name
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.4 COMPLETE -->
+  <h2>2.4 — Finaliser une conversation</h2>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="url">/bot-tracking/twilio/complete</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="endpoint-desc">Marque la conversation comme terminée. Calcule la durée totale. À appeler en fin de flow principal ou après un transfert vers un agent humain.</p>
+
+      <h3>Paramètres</h3>
+      <table>
+        <tr><th>Paramètre</th><th>Type</th><th>Obligatoire</th><th>Description</th></tr>
+        <tr><td class="param-name">conversation_id</td><td>integer</td><td><span class="required">OUI</span></td><td>ID retourné par <code>/incoming</code></td></tr>
+      </table>
+
+      <h3>Exemple</h3>
+      <div class="code-block">
+URL    : https://votre-domaine.com/bot-tracking/twilio/complete<br>
+Method : POST<br><br>
+conversation_id = {{widgets.track_incoming.parsed.conversation_id}}
+      </div>
+
+      <h3>Réponse</h3>
+      <div class="code-block">
+{ <span class="code-key">"success"</span>: <span class="code-keyword">true</span>, <span class="code-key">"completed"</span>: <span class="code-keyword">true</span>, <span class="code-key">"duration_seconds"</span>: <span class="code-number">183</span> }
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.5 EVENT GÉNÉRIQUE -->
+  <h2>2.5 — Événement générique (optionnel)</h2>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="url">/bot-tracking/webhooks/event</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="endpoint-desc">Endpoint universel pour enregistrer n'importe quel type d'événement personnalisé (erreur, timeout, transfert agent, etc.).</p>
+
+      <table>
+        <tr><th>Paramètre</th><th>Obligatoire</th><th>Description</th></tr>
+        <tr><td class="param-name">session_id</td><td><span class="required">OUI</span></td><td>session_id retourné par <code>/incoming</code></td></tr>
+        <tr><td class="param-name">phone_number</td><td><span class="required">OUI</span></td><td>Numéro de téléphone (sans <code>whatsapp:</code>)</td></tr>
+        <tr><td class="param-name">event_type</td><td><span class="required">OUI</span></td><td>Type libre : <code>flow_start</code>, <code>error</code>, <code>timeout</code>, <code>agent_transfer</code>, etc.</td></tr>
+        <tr><td class="param-name">widget_name</td><td><span class="optional">non</span></td><td>Nom du widget Studio source</td></tr>
+        <tr><td class="param-name">bot_message</td><td><span class="optional">non</span></td><td>Message envoyé par le bot</td></tr>
+        <tr><td class="param-name">metadata</td><td><span class="optional">non</span></td><td>Objet JSON de données supplémentaires</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 3 — FLOW PRINCIPAL
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">3 — Intégration dans le Flow principal
+    <span>Placement des widgets HTTP et variables à propager</span>
+  </h1>
+
+  <h2>Structure recommandée du Flow principal</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Trigger (entrée du flow) → Widget HTTP : <code>track_incoming</code></h4>
+        <p>Premier widget après le Trigger. Connecte le numéro Twilio à votre base de données.</p>
+        <div class="code-block">
+Nom du widget : track_incoming<br>
+URL    : https://votre-domaine.com/bot-tracking/twilio/incoming<br>
+Method : POST<br><br>
+From        = {{trigger.message.From}}<br>
+Body        = {{trigger.message.Body}}<br>
+MessageSid  = {{trigger.message.MessageSid}}<br>
+ProfileName = {{trigger.message.ProfileName}}<br>
+NumMedia    = {{trigger.message.NumMedia}}
+        </div>
+        <div class="callout callout-success">
+          <strong>✅ Après ce widget, vous avez accès à :</strong>
+          <code>{{widgets.track_incoming.parsed.conversation_id}}</code> — à stocker dans une variable de flow et passer à TOUS vos subflows.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Set Variables — Stocker le conversation_id</h4>
+        <p>Utilisez un widget <strong>Set Variables</strong> ou <strong>Split Based On</strong> pour stocker le <code>conversation_id</code> dans une variable globale réutilisable partout.</p>
+        <div class="code-block">
+<span class="code-comment">// Widget "Set Variables" — Variables à créer</span><br>
+conversation_id  = {{widgets.track_incoming.parsed.conversation_id}}<br>
+is_client        = {{widgets.track_incoming.parsed.is_client}}<br>
+client_name      = {{widgets.track_incoming.parsed.client_full_name}}<br>
+client_has_name  = {{widgets.track_incoming.parsed.client_has_name}}
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Condition sur is_client (Split Widget)</h4>
+        <p>Utilisez les variables retournées pour personnaliser le parcours.</p>
+        <div class="code-block">
+<span class="code-comment">// Split Based On :</span><br>
+Variable   : {{widgets.track_incoming.parsed.client_status_known}}<br>
+Conditions :<br>
+&nbsp;&nbsp;"true"  → parcours client identifié<br>
+&nbsp;&nbsp;"false" → demander si client ou non
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Affichage du menu principal → Widget HTTP : <code>track_menu</code></h4>
+        <p>Après chaque envoi du menu principal et réception de la réponse de l'utilisateur.</p>
+        <div class="code-block">
+Nom du widget : track_menu_principal<br>
+URL    : https://votre-domaine.com/bot-tracking/twilio/menu-choice<br>
+Method : POST<br><br>
+conversation_id = {{flow.variables.conversation_id}}<br>
+menu_choice     = menu_principal<br>
+user_input      = {{widgets.menu_principal.inbound.Body}}<br>
+choice_label    = <span class="code-comment">/* valeur humaine ex: "Assistance dépannage" */</span>
+        </div>
+        <div class="callout callout-info">
+          <strong>💡 Astuce : choice_label dynamique</strong>
+          Si votre menu utilise des numéros, mappez-les dans une variable :<br>
+          <code>choice_label = {{flow.variables.menu_label}}</code> que vous définissez dans un Set Variables avant l'appel.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>Avant chaque transfert vers un Subflow — Passer le conversation_id</h4>
+        <p>C'est le paramètre le plus important. Sans lui, le subflow ne peut pas tracker.</p>
+        <div class="code-block">
+<span class="code-comment">// Widget "Run Subflow" — Parameters</span><br>
+conversation_id = {{flow.variables.conversation_id}}<br>
+is_client       = {{flow.variables.is_client}}<br>
+client_name     = {{flow.variables.client_name}}
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h4>Fin du flow → Widget HTTP : <code>track_complete</code></h4>
+        <p>À placer avant le widget <strong>End Flow</strong>.</p>
+        <div class="code-block">
+Nom du widget : track_complete<br>
+URL    : https://votre-domaine.com/bot-tracking/twilio/complete<br>
+Method : POST<br><br>
+conversation_id = {{flow.variables.conversation_id}}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Schéma visuel du flow principal</h2>
+
+  <div class="flow-diagram">
+[Trigger WhatsApp]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_incoming] <span class="flow-api">POST /twilio/incoming</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [Set Variables: conversation_id, is_client, client_name]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [Split: client_status_known ?]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [true] Afficher menu personnalisé<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [false] Demander si client<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_free_input] <span class="flow-api">POST /twilio/free-input</span> (widget_name=check_client)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [Envoyer menu principal]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_menu_principal] <span class="flow-api">POST /twilio/menu-choice</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [Run Subflow: passer conversation_id]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_complete] <span class="flow-api">POST /twilio/complete</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="flow-arrow">→</span> [End Flow]
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 4 — SUBFLOWS
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">4 — Intégration dans les Subflows
+    <span>Règles et patterns pour chaque type de subflow</span>
+  </h1>
+
+  <div class="callout callout-danger">
+    <strong>🔑 Règle fondamentale pour les Subflows</strong>
+    Le <code>conversation_id</code> DOIT être passé depuis le Flow principal comme paramètre d'entrée. Ne jamais appeler <code>/incoming</code> depuis un subflow — cela créerait une conversation en double.
+  </div>
+
+  <h2>Paramètre d'entrée obligatoire dans chaque Subflow</h2>
+  <div class="code-block">
+<span class="code-comment">// Dans les paramètres d'entrée du Subflow (Input Variables)</span><br>
+conversation_id  <span class="code-comment">// Passé par le flow parent</span><br>
+is_client        <span class="code-comment">// Optionnel, pour personnaliser le parcours</span>
+  </div>
+
+  <h2>Pattern type : Subflow de collecte d'informations</h2>
+  <p>Exemple : Subflow "Assistance dépannage" qui collecte le VIN et l'email.</p>
+
+  <div class="flow-diagram">
+[Début Subflow "Assistance Dépannage"]<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_sub_menu] <span class="flow-api">POST /twilio/menu-choice</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;menu_choice = subflow_assistance<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;choice_label = Assistance Dépannage<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [Envoyer message: "Quel est votre VIN ?"]<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [Attendre réponse]<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_vin] <span class="flow-api">POST /twilio/free-input</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;widget_name = collect_vin<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user_input  = réponse utilisateur<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [Envoyer message: "Quel est votre email ?"]<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [Attendre réponse]<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [HTTP: track_email] <span class="flow-api">POST /twilio/free-input</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;widget_name = collect_email<br>
+&nbsp;&nbsp;<span class="flow-arrow">→</span> [Fin Subflow — retour au Flow parent]
+  </div>
+
+  <h2>Pattern type : Subflow de menu secondaire</h2>
+  <p>Exemple : Subflow "Mon Compte" avec des sous-choix.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Annoncer l'entrée dans le sous-menu</h4>
+        <div class="code-block">
+Nom  : track_submenu_entry<br>
+URL  : /bot-tracking/twilio/menu-choice<br>
+conversation_id = {{trigger.params.conversation_id}}<br>
+menu_choice     = submenu_mon_compte<br>
+choice_label    = Mon Compte
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Tracker chaque choix du sous-menu</h4>
+        <div class="code-block">
+Nom  : track_submenu_choice<br>
+URL  : /bot-tracking/twilio/menu-choice<br>
+conversation_id = {{trigger.params.conversation_id}}<br>
+menu_choice     = submenu_mon_compte<br>
+user_input      = {{widgets.submenu_mon_compte.inbound.Body}}<br>
+choice_label    = Solde points <span class="code-comment">// ou "Historique achats", etc.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Récapitulatif par type de subflow</h2>
+  <table>
+    <tr>
+      <th>Type de subflow</th>
+      <th>Endpoint(s) à utiliser</th>
+      <th>Paramètre clé</th>
+    </tr>
+    <tr>
+      <td><strong>Menu secondaire</strong></td>
+      <td><code>/menu-choice</code></td>
+      <td><code>menu_choice</code> = nom du sous-menu<br><code>choice_label</code> = label du choix</td>
+    </tr>
+    <tr>
+      <td><strong>Collecte de données</strong></td>
+      <td><code>/free-input</code> pour chaque collecte</td>
+      <td><code>widget_name</code> = <code>collect_name</code>, <code>collect_vin</code>, etc.</td>
+    </tr>
+    <tr>
+      <td><strong>FAQ / Informations</strong></td>
+      <td><code>/menu-choice</code> à l'entrée</td>
+      <td><code>menu_choice</code> = <code>subflow_faq</code></td>
+    </tr>
+    <tr>
+      <td><strong>Transfert vers agent</strong></td>
+      <td><code>/complete</code> après le transfert</td>
+      <td>Statut = <code>completed</code> automatique</td>
+    </tr>
+    <tr>
+      <td><strong>Réclamation</strong></td>
+      <td><code>/menu-choice</code> + <code>/free-input</code></td>
+      <td>Enregistrer le motif de réclamation en texte libre</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-warning">
+    <strong>⚠️ Ne pas appeler /complete depuis un Subflow intermédiaire</strong>
+    Appelez <code>/complete</code> uniquement depuis le Flow principal, à la toute fin. Si vous l'appelez depuis un subflow intermédiaire, la durée sera calculée trop tôt et la conversation sera fermée prématurément.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 5 — EXEMPLES COMPLETS
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">5 — Cas d'usage complets
+    <span>Exemples réels avec corps de requête et réponses attendues</span>
+  </h1>
+
+  <h2>Cas 1 : Nouvel utilisateur inconnu</h2>
+  <p>Un numéro qui n'a jamais contacté le bot. Le système crée une conversation et retourne <code>client_status_known = "false"</code>.</p>
+
+  <div class="code-block">
+<span class="code-comment">// 1. Appel à /incoming</span><br>
+From        = whatsapp:+2250701234567<br>
+Body        = Bonjour<br>
+MessageSid  = SM_abc123<br>
+ProfileName = Konan Yao<br><br>
+
+<span class="code-comment">// Réponse :</span><br>
+{<br>
+&nbsp;&nbsp;<span class="code-key">"conversation_id"</span>: <span class="code-number">201</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"is_client"</span>: <span class="code-string">null</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_status_known"</span>: <span class="code-string">"false"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_has_name"</span>: <span class="code-string">"false"</span><br>
+}<br><br>
+
+<span class="code-comment">// 2. Flow demande : "Êtes-vous client Sportcash ?" (1=Oui, 2=Non)</span><br>
+<span class="code-comment">// L'utilisateur répond "1"</span><br>
+<span class="code-comment">// Appel à /free-input</span><br>
+conversation_id = 201<br>
+user_input      = 1<br>
+widget_name     = check_client<br><br>
+
+<span class="code-comment">// → is_client = true enregistré automatiquement</span><br><br>
+
+<span class="code-comment">// 3. Afficher le menu principal, user choisit "2" (Mon Compte)</span><br>
+<span class="code-comment">// Appel à /menu-choice</span><br>
+conversation_id = 201<br>
+menu_choice     = menu_principal<br>
+user_input      = 2<br>
+choice_label    = Mon Compte
+  </div>
+
+  <h2>Cas 2 : Client connu avec VIN à collecter</h2>
+
+  <div class="code-block">
+<span class="code-comment">// /incoming retourne :</span><br>
+{<br>
+&nbsp;&nbsp;<span class="code-key">"conversation_id"</span>: <span class="code-number">202</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"is_client"</span>: <span class="code-string">"true"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_has_name"</span>: <span class="code-string">"true"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_full_name"</span>: <span class="code-string">"KOFFI Adjoua Marie"</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"client_status_known"</span>: <span class="code-string">"true"</span><br>
+}<br><br>
+
+<span class="code-comment">// Subflow Assistance : collecter le VIN</span><br>
+<span class="code-comment">// Appel à /free-input</span><br>
+conversation_id = 202<br>
+user_input      = VF1RJA00662553741<br>
+widget_name     = collect_vin<br><br>
+<span class="code-comment">// → VIN sauvegardé dans la conversation ET dans la table clients</span>
+  </div>
+
+  <h2>Cas 3 : Subflow réclamation avec texte libre</h2>
+
+  <div class="code-block">
+<span class="code-comment">// Entrer dans le subflow réclamation</span><br>
+<span class="code-comment">// Appel à /menu-choice</span><br>
+conversation_id = 203<br>
+menu_choice     = subflow_reclamation<br>
+choice_label    = Dépôt de réclamation<br><br>
+
+<span class="code-comment">// L'utilisateur décrit son problème librement</span><br>
+<span class="code-comment">// Appel à /free-input avec widget_name custom</span><br>
+conversation_id = 203<br>
+user_input      = Ma carte VIP ne fonctionne plus depuis 2 jours<br>
+widget_name     = reclamation_description<br><br>
+
+<span class="code-comment">// Sous-choix dans le subflow réclamation</span><br>
+<span class="code-comment">// Appel à /menu-choice</span><br>
+conversation_id = 203<br>
+menu_choice     = subflow_reclamation<br>
+user_input      = 1<br>
+choice_label    = Problème carte VIP
+  </div>
+
+  <h2>Cas 4 : Fin de conversation après transfert agent</h2>
+
+  <div class="code-block">
+<span class="code-comment">// Après le widget "Connect Call" / transfert Chatwoot</span><br>
+<span class="code-comment">// Appel à /complete (dans le Flow principal)</span><br>
+conversation_id = 204<br><br>
+
+<span class="code-comment">// Réponse :</span><br>
+{<br>
+&nbsp;&nbsp;<span class="code-key">"success"</span>: <span class="code-keyword">true</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"completed"</span>: <span class="code-keyword">true</span>,<br>
+&nbsp;&nbsp;<span class="code-key">"duration_seconds"</span>: <span class="code-number">347</span>  <span class="code-comment">// ~5min47</span><br>
+}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 6 — VARIABLES RETOURNÉES
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">6 — Données retournées — utilisation dans le flow
+    <span>Référence complète des variables disponibles après chaque appel</span>
+  </h1>
+
+  <h2>Variables disponibles après <code>track_incoming</code></h2>
+  <p>Supposant que votre widget HTTP s'appelle <code>track_incoming</code> :</p>
+
+  <table>
+    <tr><th>Variable Twilio</th><th>Type</th><th>Description</th><th>Exemple</th></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.conversation_id}}</code></td><td>integer</td><td><strong>Clé à propager partout</strong></td><td><code>142</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.session_id}}</code></td><td>string</td><td>ID de session unique</td><td><code>session_68abc...</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.is_client}}</code></td><td>string</td><td>"true", "false" ou null</td><td><code>"true"</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.client_full_name}}</code></td><td>string</td><td>Nom du client si connu</td><td><code>"KONAN Yao"</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.client_has_name}}</code></td><td>string</td><td>"true" si le nom est renseigné</td><td><code>"true"</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.client_status_known}}</code></td><td>string</td><td>"true" si on sait si c'est un client ou non</td><td><code>"false"</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.current_menu}}</code></td><td>string</td><td>Dernier menu visité</td><td><code>"main_menu"</code></td></tr>
+    <tr><td><code>{{widgets.track_incoming.parsed.has_media}}</code></td><td>string</td><td>"true" si le message contient des médias</td><td><code>"false"</code></td></tr>
+  </table>
+
+  <h2>Utiliser is_client dans un Split Widget</h2>
+  <div class="code-block">
+<span class="code-comment">// Split Based On — Variable</span><br>
+{{widgets.track_incoming.parsed.is_client}}<br><br>
+Condition 1 : Equals  "true"   → Parcours Client<br>
+Condition 2 : Equals  "false"  → Parcours Prospect<br>
+Condition 3 : No Match         → Demander si client
+  </div>
+
+  <h2>Utiliser client_has_name pour personnaliser le message</h2>
+  <div class="code-block">
+<span class="code-comment">// Message conditionnel — Send Message Widget</span><br>
+<span class="code-comment">// Si client_has_name = "true" :</span><br>
+"Bonjour {{widgets.track_incoming.parsed.client_full_name}} ! 👋<br>
+Comment puis-je vous aider aujourd'hui ?"<br><br>
+<span class="code-comment">// Si client_has_name = "false" :</span><br>
+"Bonjour ! Comment puis-je vous aider ?"
+  </div>
+
+  <h2>Passer les variables à un Subflow</h2>
+  <div class="code-block">
+<span class="code-comment">// Widget "Run Subflow" — Input parameters</span><br>
+conversation_id = {{flow.variables.conversation_id}}<br>
+is_client       = {{flow.variables.is_client}}<br>
+client_name     = {{flow.variables.client_name}}<br><br>
+<span class="code-comment">// Dans le subflow, accéder avec :</span><br>
+{{trigger.params.conversation_id}}<br>
+{{trigger.params.is_client}}<br>
+{{trigger.params.client_name}}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION 7 — BONNES PRATIQUES
+════════════════════════════════════ -->
+<div class="page">
+  <h1 class="section-title">7 — Bonnes pratiques &amp; erreurs fréquentes
+    <span>Ce qu'il faut faire, ce qu'il faut éviter</span>
+  </h1>
+
+  <h2>✅ Ce qu'il faut faire</h2>
+
+  <div class="callout callout-success">
+    <strong>Toujours appeler /incoming en tout premier</strong>
+    Avant toute logique de flow, même avant d'envoyer un message. C'est lui qui initialise la conversation.
+  </div>
+
+  <div class="callout callout-success">
+    <strong>Stocker conversation_id dans une variable de flow</strong>
+    <code>flow.variables.conversation_id</code> est accessible dans tout le flow et dans tous les subflows. Ne pas le recalculer.
+  </div>
+
+  <div class="callout callout-success">
+    <strong>Donner un choice_label lisible à chaque menu_choice</strong>
+    Le <code>choice_label</code> est ce qui apparaît dans les graphiques du dashboard. "Assistance dépannage" est bien meilleur que "1".
+  </div>
+
+  <div class="callout callout-success">
+    <strong>Utiliser des menu_choice cohérents entre vos flows</strong>
+    Si le même menu existe dans plusieurs subflows, utilisez le même nom. Les stats seront regroupées automatiquement.
+  </div>
+
+  <h2>❌ Ce qu'il faut éviter</h2>
+
+  <div class="callout callout-danger">
+    <strong>Ne JAMAIS appeler /incoming depuis un subflow</strong>
+    Cela crée une deuxième conversation pour le même utilisateur, dupliquant les stats.
+  </div>
+
+  <div class="callout callout-danger">
+    <strong>Ne JAMAIS appeler /complete au milieu d'un subflow</strong>
+    La conversation se ferme et la durée est calculée trop tôt. Appelez /complete uniquement dans le flow principal, juste avant End Flow.
+  </div>
+
+  <div class="callout callout-danger">
+    <strong>Ne pas oublier le conversation_id dans les subflows</strong>
+    Si vous n'avez pas de conversation_id dans un subflow, les appels API retourneront 404 et rien ne sera tracké.
+  </div>
+
+  <div class="callout callout-warning">
+    <strong>⚠️ Gérer les erreurs HTTP dans Twilio Studio</strong>
+    Configurez la connexion "Failed" de chaque widget HTTP pour continuer le flow même si l'API est inaccessible. Le tracking ne doit jamais bloquer la conversation utilisateur.
+  </div>
+
+  <h2>Nommage recommandé des widgets HTTP</h2>
+
+  <table>
+    <tr><th>Widget</th><th>Nom suggéré</th><th>Emplacement</th></tr>
+    <tr><td>/incoming</td><td><code>track_incoming</code></td><td>Flow principal — 1er widget</td></tr>
+    <tr><td>/menu-choice (menu principal)</td><td><code>track_menu_principal</code></td><td>Flow principal — après réponse menu</td></tr>
+    <tr><td>/menu-choice (sous-menu)</td><td><code>track_submenu_[nom]</code></td><td>Subflow — au début</td></tr>
+    <tr><td>/free-input (collecte nom)</td><td><code>track_collect_name</code></td><td>Où le nom est collecté</td></tr>
+    <tr><td>/free-input (collecte VIN)</td><td><code>track_collect_vin</code></td><td>Subflow concerné</td></tr>
+    <tr><td>/complete</td><td><code>track_complete</code></td><td>Flow principal — avant End Flow</td></tr>
+  </table>
+
+  <h2>Checklist d'intégration</h2>
+
+  <table>
+    <tr><th>✓</th><th>Élément à vérifier</th></tr>
+    <tr><td>☐</td><td>Widget <code>track_incoming</code> présent en premier dans le Flow principal</td></tr>
+    <tr><td>☐</td><td><code>conversation_id</code> stocké dans <code>flow.variables</code></td></tr>
+    <tr><td>☐</td><td>Un widget <code>/menu-choice</code> après chaque menu interactif</td></tr>
+    <tr><td>☐</td><td><code>conversation_id</code> passé en paramètre à tous les subflows</td></tr>
+    <tr><td>☐</td><td>Widget <code>/free-input</code> avec le bon <code>widget_name</code> pour chaque collecte</td></tr>
+    <tr><td>☐</td><td>Widget <code>track_complete</code> avant chaque <code>End Flow</code> dans le flow principal</td></tr>
+    <tr><td>☐</td><td>Connexion "Failed" configurée sur tous les widgets HTTP</td></tr>
+    <tr><td>☐</td><td><code>/incoming</code> absent de tous les subflows</td></tr>
+    <tr><td>☐</td><td><code>/complete</code> absent de tous les subflows</td></tr>
+  </table>
+
+  <div style="margin-top: 48px; padding-top: 24px; border-top: 2px solid var(--gray-200); text-align: center; color: var(--gray-600); font-size: 9pt;">
+    <p><strong>TotalEnergies CI</strong> — Documentation Bot Tracking v2.0</p>
+    <p>Support technique : admin@yeswecange.com</p>
+  </div>
+</div>
+
+</body>
+</html>

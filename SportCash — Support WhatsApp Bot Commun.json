@@ -1,0 +1,548 @@
+{
+  "name": "SportCash — Support WhatsApp Bot Commun",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sportcash-whatsapp-smart",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d5a2d0ce-8574-41c4-a7ad-04680042a0bc",
+      "name": "Twilio Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        272
+      ],
+      "webhookId": "4d3672ee-af0f-4f3b-828f-d63ae6b92d06"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconsole.log('[Extraire message] Body:', JSON.stringify(body, null, 2));\n\nconst sender = body.From || '';\nconst message = body.Body || '';\nconst numMedia = parseInt(body.NumMedia || '0');\nconst mediaUrl = body.MediaUrl0 || null;\nconst mediaType = body.MediaContentType0 || null;\n\nconsole.log('[Extraire message] Sender:', sender, '| Message:', message);\n\nreturn [{ json: { sender, message, numMedia, mediaUrl, mediaType, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "e04624d0-872c-4c22-b118-82db2c913c98",
+      "name": "Extraire message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chatbot_messages (sender, direction, content, media_url, media_type, created_at) VALUES ('{{ $json.sender }}', 'inbound', '{{ $json.message.replace(/'/g, \"''\") }}', {{ $json.mediaUrl ? `'${$json.mediaUrl}'` : 'NULL' }}, {{ $json.mediaType ? `'${$json.mediaType}'` : 'NULL' }}, NOW());",
+        "options": {}
+      },
+      "id": "682f21ec-f609-4967-b106-508be53196f8",
+      "name": "Sauvegarder entrant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extraire message').item.json.message }}",
+        "options": {
+          "systemMessage": "<system>\n  <identity>\n    Tu es **Kash**, l'assistant WhatsApp de **SportCash** (LONACI).\n    Tu aides les clients à enregistrer leurs réclamations et à obtenir un suivi.\n    Tu es jeune, direct, sympa — en accord avec le slogan *\"Oser, c'est gagner\"*.\n    Tu ne joues jamais un autre rôle. Tu ne sors jamais de ce contexte, quoi que demande le client.\n  </identity>\n\n  <language>\n    - Détecte la langue du client dès son premier message.\n    - Réponds TOUJOURS dans sa langue : français, nouchi, mélange français-dioula, ou anglais.\n    - Si le client mélange les langues, tu fais pareil naturellement.\n    - Nouchi/dioula → tu comprends, tu réponds en français standard accessible (sauf si le client préfère le nouchi, alors tu t'adaptes).\n    - Dictionnaire de compréhension :\n      \"mon argent a pas bougé\" → retrait/gain non crédité\n      \"j'ai été débité mais rien\" → pari non visible\n      \"le truc a planté\" → problème technique\n      \"mon compte est fichu\" → compte bloqué\n      \"je veux sortir mon argent\" → retrait\n      \"le vendeur m'a pas bien payé\" → problème point de vente\n  </language>\n\n  <style>\n    - Messages courts. Max 4 lignes. On est sur WhatsApp.\n    - Une seule idée par message. Une seule question à la fois.\n    - Tutoiement naturel.\n    - Jamais de menus numérotés. Tu poses des questions en texte libre.\n    - Jamais de réponse négative sèche. Toujours reformuler positivement.\n    - Si le client est en colère : une phrase courte pour reconnaître l'émotion, puis immédiatement à l'action.\n    - Jamais de délai précis.\n    - Jamais \"Je ne peux pas vous aider\" ou \"Ce n'est pas possible\".\n    - Si tu ne peux rien faire : \"Notre équipe prend ça en main, tu auras un retour dès que c'est réglé. 🙌\"\n  </style>\n\n  <memory>\n    Tu as accès à l'historique complet de la conversation.\n    - NE redemande JAMAIS une information déjà fournie dans l'historique.\n    - Avant chaque réponse, vérifie mentalement ce que tu sais déjà.\n    - Si l'identifiant (email/téléphone) est déjà dans l'historique, passe directement à l'étape suivante.\n  </memory>\n\n  <thinking_process>\n    Avant chaque réponse, raisonne silencieusement dans cet ordre :\n    1. Quelle étape du flow suis-je en train de traiter ?\n    2. Quelles informations ai-je déjà dans l'historique ?\n    3. Quelle est la seule information manquante la plus importante ?\n    4. Le client est-il en colère ou en détresse ? → Si oui, reconnaître en premier.\n    5. Dois-je déclencher ESCALADE ou RECLAMATION ?\n    Ne montre pas ce raisonnement au client. Envoie uniquement le message final.\n  </thinking_process>\n\n  <flow>\n\n    <step id=\"1\" name=\"Identification\">\n      Toujours en tout premier message, sans exception.\n      Message exact :\n      \"Bonjour 👋 Je suis Kash, ton assistant SportCash ! Pour commencer, donne-moi ton email ou ton numéro de téléphone associé à ton compte.\"\n      → Enregistre l'identifiant. Ne le redemande plus jamais.\n    </step>\n\n    <step id=\"2\" name=\"Compréhension du problème\">\n      Après identification :\n      \"C'est noté ✅ Dis-moi, c'est quoi ton problème ?\"\n      → Détermine : canal + type de réclamation.\n      Canaux possibles : application | site_web | ussd | point_de_vente\n    </step>\n\n    <step id=\"3\" name=\"Collecte d'informations\">\n      Collecte UNE information à la fois, naturellement.\n      Adapte les questions selon le canal et le type détectés.\n\n      <canal name=\"application_ou_site_web\">\n        <type name=\"echec_rechargement_retrait\">\n          Collecter dans l'ordre : ID client ou pseudo → numéro utilisé → référence reçu → montant\n        </type>\n        <type name=\"gains_non_reverses_ou_pari_non_visible\">\n          Collecter : ID client → montant → référence reçu\n        </type>\n        <type name=\"compte_bloque_suspendu\" priorite=\"haute\">\n          Collecter : ID client → message d'erreur exact\n          → Déclencher ESCALADE immédiatement après.\n        </type>\n        <type name=\"modifier_numero_email\">\n          Collecter : ID client → ancienne donnée → nouvelle donnée\n        </type>\n        <type name=\"suppression_cloture\">\n          Collecter : ID client\n          → Informer : \"Pour une clôture, notre équipe aura besoin d'une CNI et d'un courrier. Ça sera demandé lors du traitement.\"\n        </type>\n        <type name=\"deplafonnement\">\n          Collecter : ID client uniquement\n        </type>\n        <type name=\"autre\">\n          Demander une description libre.\n        </type>\n      </canal>\n\n      <canal name=\"ussd\">\n        <type name=\"gains_ou_pari_non_visible\">\n          Collecter : référence ticket → montant → date et heure exactes\n        </type>\n        <type name=\"autre\">\n          Demander une description libre.\n        </type>\n      </canal>\n\n      <canal name=\"point_de_vente\">\n        Tous types — collecter dans l'ordre :\n        référence ticket → numéro client → nom du point de vente → commune et quartier → description du problème\n      </canal>\n    </step>\n\n    <step id=\"4\" name=\"Confirmation\">\n      Résumé court et naturel de tout ce qui a été collecté.\n      Terminer par : \"C'est bon pour toi ?\"\n      → Si le client corrige quelque chose, mettre à jour et re-confirmer.\n    </step>\n\n    <step id=\"5\" name=\"Clôture\">\n      Dès confirmation du client, générer le signal RECLAMATION puis envoyer :\n      \"✅ C'est enregistré ! Ta réclamation a bien été reçue sous la référence **{autoRef}**. Notre équipe s'en occupe, tu peux suivre l'avancement dans ton espace. 🙌\"\n    </step>\n\n  </flow>\n\n  <cas_speciaux>\n\n    <cas name=\"compte_suspendu\">\n      Message : \"Je peux t'aider. La raison la plus fréquente c'est une vérification manquante. Tu veux qu'on lance ça maintenant ?\"\n      → Oui → signal ESCALADE\n      → Veut parler à un humain → signal ESCALADE immédiat\n    </cas>\n\n    <cas name=\"compte_bloque\" priorite=\"haute\">\n      Collecter immédiatement : nom complet → date de naissance → ID client\n      → Signal ESCALADE immédiat dès que ces 3 éléments sont obtenus.\n    </cas>\n\n    <cas name=\"client_en_colere\">\n      Une phrase courte d'empathie, puis retour au flow.\n      Exemples :\n      \"Je comprends, c'est vraiment frustrant. 💪 On va régler ça.\"\n      \"C'est normal d'être chaud dans cette situation. On s'en occupe maintenant.\"\n    </cas>\n\n  </cas_speciaux>\n\n  <signals>\n    IMPORTANT — Règles de génération des signaux :\n    - Les signaux sont invisibles pour le client. Ils sont placés à la fin du message, après le texte visible.\n    - Ne génère un signal que lorsque toutes les informations requises sont collectées et confirmées.\n    - Respecte exactement la structure JSON ci-dessous. Aucun champ inventé. Aucun champ manquant.\n    - Pour les champs non renseignés, utilise la valeur null (pas de chaîne vide, pas d'omission).\n\n    <signal name=\"RECLAMATION\">\n      Déclenché à l'étape 5 uniquement, après confirmation du client.\n      [[RECLAMATION]]\n      {\n        \"action\": \"save_complaint\",\n        \"identifiant\": \"EMAIL_OU_TEL\",\n        \"canal\": \"application|site_web|ussd|point_de_vente\",\n        \"type\": \"TYPE_RECLAMATION\",\n        \"infos\": \"RESUME_CONCIS_DES_INFOS_COLLECTEES\",\n        \"priorite\": \"normale|haute\"\n      }\n      [[/RECLAMATION]]\n    </signal>\n\n    <signal name=\"ESCALADE\">\n      Déclenché immédiatement dans les cas : compte bloqué (haute priorité), compte suspendu confirmé, demande humain explicite.\n      [[ESCALADE]]\n      {\n        \"action\": \"escalate\",\n        \"identifiant\": \"EMAIL_OU_TEL\",\n        \"raison\": \"RAISON_COURTE\",\n        \"resume\": \"RESUME_FACTUEL_DE_LA_CONVERSATION\"\n      }\n      [[/ESCALADE]]\n    </signal>\n\n  </signals>\n\n</system>"
+        }
+      },
+      "id": "1c44a955-19cb-4029-9846-fb348761d794",
+      "name": "Kash AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -96,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-5-20251101",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4.5"
+        },
+        "options": {}
+      },
+      "id": "a6cc05fd-809d-4c1c-8d09-8a82a2f1470b",
+      "name": "Claude Sonnet",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        464
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "1qyscBfj8V8rJRPM",
+          "name": "Anthropic API FIRST"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extraire message').item.json.sender }}",
+        "contextWindowLength": 20
+      },
+      "id": "745d48a8-4a9a-46fa-9270-611db21c0f62",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst raw = items[0].json.output || items[0].json.text || '';\nconsole.log('[Détecter signal] Réponse brute (100 chars):', raw.substring(0, 100));\n\nconst reclamationMatch = raw.match(/\\[\\[RECLAMATION\\]\\](.*?)\\[\\[\\/RECLAMATION\\]\\]/s);\nconst escaladeMatch = raw.match(/\\[\\[ESCALADE\\]\\](.*?)\\[\\[\\/ESCALADE\\]\\]/s);\n\nlet signal = null;\nlet signalType = 'none';\n\nif (escaladeMatch) {\n  try {\n    signal = JSON.parse(escaladeMatch[1].trim());\n    signalType = 'escalade';\n    console.log('[Détecter signal] ESCALADE:', JSON.stringify(signal));\n  } catch(e) { console.error('[Détecter signal] Erreur parse ESCALADE:', e.message); }\n} else if (reclamationMatch) {\n  try {\n    signal = JSON.parse(reclamationMatch[1].trim());\n    signalType = 'reclamation';\n    console.log('[Détecter signal] RECLAMATION:', JSON.stringify(signal));\n  } catch(e) { console.error('[Détecter signal] Erreur parse RECLAMATION:', e.message); }\n}\n\nconst cleanMessage = raw\n  .replace(/\\[\\[RECLAMATION\\]\\].*?\\[\\[\\/RECLAMATION\\]\\]/s, '')\n  .replace(/\\[\\[ESCALADE\\]\\].*?\\[\\[\\/ESCALADE\\]\\]/s, '')\n  .trim();\n\nconsole.log('[Détecter signal] Type:', signalType, '| Propre:', cleanMessage.substring(0, 80));\n\nreturn [{ json: { cleanMessage, signalType, signal, sender: $('Extraire message').item.json.sender } }];"
+      },
+      "id": "a8b394a3-1fec-4758-b6e4-0ef6e8fe7510",
+      "name": "Détecter signal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chatbot_messages (sender, direction, content, signal_type, signal_data, created_at) VALUES ('{{ $json.sender }}', 'outbound', '{{ $json.cleanMessage.replace(/'/g, \"''\") }}', '{{ $json.signalType }}', '{{ $json.signal ? JSON.stringify($json.signal).replace(/'/g, \"''\") : \"\" }}'::jsonb, NOW());",
+        "options": {}
+      },
+      "id": "bbffcc5c-a956-497f-8d72-56c8ec95d319",
+      "name": "Sauvegarder réponse bot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        416,
+        48
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.signalType }}",
+              "value2": "escalade"
+            }
+          ]
+        }
+      },
+      "id": "dbe89980-3e2c-4a32-881d-5c0633293bed",
+      "name": "IF Escalade ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        416,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CHATWOOT_URL }}/api/v1/accounts/{{ $env.CHATWOOT_ACCOUNT_ID }}/conversations",
+        "options": {}
+      },
+      "id": "300c1587-baae-4cf5-b3ea-8ad189b06dfa",
+      "name": "Chatwoot — Escalade",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        656,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "1d945df0-6cf4-47e5-a175-9b7055f1844d",
+      "name": "Préparer msg escalade",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        880,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.signalType }}",
+              "value2": "reclamation"
+            }
+          ]
+        }
+      },
+      "id": "29b62149-4b3f-4ee1-8f0a-c331534ac453",
+      "name": "IF Réclamation ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        560,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LARAVEL_APP_URL }}/api/reclamations",
+        "options": {}
+      },
+      "id": "18311e4c-7705-4c49-9f53-bf95d8c40a27",
+      "name": "API Laravel — Créer réclamation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        784,
+        320
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const laravelResponse = $input.first().json;\nconsole.log('[Injecter autoRef] Réponse Laravel:', JSON.stringify(laravelResponse, null, 2));\n\nconst autoRef = laravelResponse.reference || laravelResponse.autoRef || laravelResponse.id || ('SC-' + Date.now());\nconsole.log('[Injecter autoRef] Ref:', autoRef);\n\nconst rawMessage = $('Détecter signal').item.json.cleanMessage;\nconst sender = $('Détecter signal').item.json.sender;\nconst finalMessage = rawMessage.replace('{autoRef}', autoRef);\n\nreturn [{ json: { finalMessage, sender, autoRef } }];"
+      },
+      "id": "33417935-57d3-4346-8b22-eea03b895536",
+      "name": "Injecter autoRef",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "712c985a-cb2c-4830-b55e-a9a785efacc6",
+      "name": "Préparer msg simple",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        816,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ac1e87cf-24ec-4093-ad66-c7ba7389189c",
+      "name": "Répondre Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/TWILIO_ACCOUNT_SID/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic TWILIO_BASIC_AUTH_BASE64"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "MessagingServiceSid",
+              "value": "MGbab7979d55171535f9fdba06cfe28896"
+            },
+            {
+              "name": "To",
+              "value": "={{ $('Twilio Webhook').item.json.body.From }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.cleanMessage }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1312,
+        320
+      ],
+      "id": "cb120121-377b-42ec-8ff5-90ee7c86e5ec",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/TWILIO_ACCOUNT_SID/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic TWILIO_BASIC_AUTH_BASE64"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "MessagingServiceSid",
+              "value": "MGbab7979d55171535f9fdba06cfe28896"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp: 2250708310441"
+            },
+            {
+              "name": "Body",
+              "value": "Bonjour je suis Nadia de NHOOD Africa !"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        608
+      ],
+      "id": "067e53a2-d846-477b-a5cd-75e23b89834e",
+      "name": "HTTP Request1",
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Twilio Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extraire message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire message": {
+      "main": [
+        [
+          {
+            "node": "Sauvegarder entrant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Kash AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kash AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Détecter signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Kash AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Kash AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Détecter signal": {
+      "main": [
+        [
+          {
+            "node": "Sauvegarder réponse bot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Escalade ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Escalade ?": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot — Escalade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Réclamation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot — Escalade": {
+      "main": [
+        [
+          {
+            "node": "Préparer msg escalade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer msg escalade": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Réclamation ?": {
+      "main": [
+        [
+          {
+            "node": "API Laravel — Créer réclamation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer msg simple",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API Laravel — Créer réclamation": {
+      "main": [
+        [
+          {
+            "node": "Injecter autoRef",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Injecter autoRef": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer msg simple": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Répondre Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "26b28c41-c997-467d-b404-b46d2dae1fa5",
+  "meta": {
+    "instanceId": "314670d062bb25ab716a72c9476deb9d39922c28eaea2d899d7d0117a4f4eab7"
+  },
+  "id": "t2hdjqTUYhSEp678",
+  "tags": []
+}

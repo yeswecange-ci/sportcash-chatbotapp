@@ -1,0 +1,4 @@
+@extends('layouts.app')
+@section('content')
+<p>{{ $foo['bar'] ?? 'default' }}</p>
+@endsection
