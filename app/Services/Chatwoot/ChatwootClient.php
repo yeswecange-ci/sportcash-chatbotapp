@@ -259,6 +259,22 @@ class ChatwootClient
     }
 
     /**
+     * Créer un message entrant client (message_type = 0)
+     * Utilisé pour forwarder les messages WhatsApp vers une conversation Chatwoot escaladée
+     */
+    public function createIncomingMessage(int $conversationId, string $content): array
+    {
+        return $this->client()
+            ->post($this->url("conversations/{$conversationId}/messages"), [
+                'content'      => $content,
+                'message_type' => 0,
+                'private'      => false,
+            ])
+            ->throw()
+            ->json();
+    }
+
+    /**
      * Envoyer un message avec fichiers joints (multipart/form-data)
      *
      * @param \Illuminate\Http\UploadedFile[] $attachments

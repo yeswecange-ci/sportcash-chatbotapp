@@ -588,11 +588,15 @@
             scroll();
             showPanelToast('Template envoye avec succes');
 
-            // Reset
+            // Reset + ouvrir le composer (fenêtre 24h réouverte par le template)
             sel.value = '';
             document.getElementById('template-variables').classList.add('hidden');
             document.getElementById('template-variables').innerHTML = '';
             document.getElementById('template-preview').classList.add('hidden');
+            document.getElementById('template-picker').classList.add('hidden');
+            document.getElementById('composer-zone').classList.remove('hidden');
+            const expiredBanner = document.getElementById('window-expired-banner');
+            if (expiredBanner) expiredBanner.classList.add('hidden');
 
             if (window._ensureConvInSidebar) {
                 window._ensureConvInSidebar(CID, {

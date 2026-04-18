@@ -151,19 +151,30 @@ class KashWebhookController extends Controller
 
         try {
             $chatwoot = new ChatwootClient();
-            $phone    = str_replace('whatsapp:', '', $sender);
-            $chatwoot->sendMessage(
-                conversationId: $escalade->chatwoot_conversation_id,
-                content:        "📱 *{$phone} :* {$message}",
-                isPrivate:      true,
-            );
+            $convId   = $escalade->chatwoot_conversation_id;
+
+            try {
+                // Tenter de créer un vrai message entrant (message_type=0)
+                $chatwoot->createIncomingMessage($convId, $message);
+            } catch (\Exception $inner) {
+                // Fallback : note privée si Chatwoot refuse le type incoming
+                Log::warning('[KASH] createIncomingMessage échoué, fallback note privée', [
+                    'error' => $inner->getMessage(),
+                ]);
+                $phone = str_replace('whatsapp:', '', $sender);
+                $chatwoot->sendMessage(
+                    conversationId: $convId,
+                    content:        "📱 *{$phone} :* {$message}",
+                    isPrivate:      true,
+                );
+            }
 
             Log::info('[KASH] Message client transféré vers Chatwoot', [
                 'sender'                   => $sender,
-                'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id,
+                'chatwoot_conversation_id' => $convId,
             ]);
 
-            return response()->json(['ok' => true, 'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id]);
+            return response()->json(['ok' => true, 'chatwoot_conversation_id' => $convId]);
 
         } catch (\Exception $e) {
             Log::error('[KASH] Erreur forward vers Chatwoot', [
