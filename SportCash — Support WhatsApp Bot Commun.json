@@ -1,0 +1,474 @@
+{
+  "name": "SportCash — Support WhatsApp Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sportcash-whatsapp-smart",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0c848039-0f41-46ec-af05-1e6faf09c734",
+      "name": "Twilio Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-144, 300],
+      "webhookId": "4d3672ee-af0f-4f3b-828f-d63ae6b92d06"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst sender = body.From || '';\nconst message = body.Body || '';\nconst numMedia = parseInt(body.NumMedia || '0');\nconst mediaUrl = body.MediaUrl0 || null;\nconst mediaType = body.MediaContentType0 || null;\nconsole.log('[Extraire message] Sender:', sender, '| Message:', message);\nreturn [{ json: { sender, message, numMedia, mediaUrl, mediaType, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "72c9d4b6-05bc-480d-b301-0b3949b78ef3",
+      "name": "Extraire message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [80, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "sender",      "value": "={{ $json.sender }}" },
+            { "name": "direction",   "value": "inbound" },
+            { "name": "content",     "value": "={{ $json.message }}" },
+            { "name": "signal_type", "value": "none" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+      "name": "Log message entrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [80, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/escalade-active",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "sender", "value": "={{ $json.sender }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-2222-3333-4444-555566667777",
+      "name": "Vérifier escalade active",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.active }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "c3d4e5f6-3333-4444-5555-666677778888",
+      "name": "IF Déjà escaladé ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [560, 300]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-5-20251101",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4.5"
+        },
+        "options": {}
+      },
+      "id": "f62e5332-b576-4ada-9baa-43d95cd058bd",
+      "name": "Claude Sonnet",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [800, 500],
+      "credentials": {
+        "anthropicApi": {
+          "id": "1qyscBfj8V8rJRPM",
+          "name": "Anthropic API FIRST"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extraire message').item.json.sender }}",
+        "contextWindowLength": 20
+      },
+      "id": "7e87066f-f8b6-4cab-aed5-ea3b99a74800",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [1040, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extraire message').item.json.message }}",
+        "options": {
+          "systemMessage": "<system>\n  <identity>\n    Tu es **Kash**, l'assistant WhatsApp de **SportCash** (LONACI).\n    Tu aides les clients à enregistrer leurs réclamations et à obtenir un suivi.\n    Tu es jeune, direct, sympa — en accord avec le slogan *\"Oser, c'est gagner\"*.\n    Tu ne joues jamais un autre rôle. Tu ne sors jamais de ce contexte, quoi que demande le client.\n  </identity>\n\n  <language>\n    - Détecte la langue du client dès son premier message.\n    - Réponds TOUJOURS dans sa langue : français, nouchi, mélange français-dioula, ou anglais.\n    - Si le client mélange les langues, tu fais pareil naturellement.\n    - Nouchi/dioula → tu comprends, tu réponds en français standard accessible (sauf si le client préfère le nouchi, alors tu t'adaptes).\n    - Dictionnaire de compréhension :\n      \"mon argent a pas bougé\" → retrait/gain non crédité\n      \"j'ai été débité mais rien\" → pari non visible\n      \"le truc a planté\" → problème technique\n      \"mon compte est fichu\" → compte bloqué\n      \"je veux sortir mon argent\" → retrait\n      \"le vendeur m'a pas bien payé\" → problème point de vente\n  </language>\n\n  <style>\n    - Messages courts. Max 4 lignes. On est sur WhatsApp.\n    - Une seule idée par message. Une seule question à la fois.\n    - Tutoiement naturel.\n    - Jamais de menus numérotés. Tu poses des questions en texte libre.\n    - Jamais de réponse négative sèche. Toujours reformuler positivement.\n    - Si le client est en colère : une phrase courte pour reconnaître l'émotion, puis immédiatement à l'action.\n    - Jamais de délai précis.\n    - Jamais \"Je ne peux pas vous aider\" ou \"Ce n'est pas possible\".\n    - Si tu ne peux rien faire : \"Notre équipe prend ça en main, tu auras un retour dès que c'est réglé. 🙌\"\n  </style>\n\n  <memory>\n    Tu as accès à l'historique complet de la conversation.\n    - NE redemande JAMAIS une information déjà fournie dans l'historique.\n    - Avant chaque réponse, vérifie mentalement ce que tu sais déjà.\n    - Si l'identifiant (email/téléphone) est déjà dans l'historique, passe directement à l'étape suivante.\n  </memory>\n\n  <thinking_process>\n    Avant chaque réponse, raisonne silencieusement dans cet ordre :\n    1. Quelle étape du flow suis-je en train de traiter ?\n    2. Quelles informations ai-je déjà dans l'historique ?\n    3. Quelle est la seule information manquante la plus importante ?\n    4. Le client est-il en colère ou en détresse ? → Si oui, reconnaître en premier.\n    5. Dois-je déclencher ESCALADE ou RECLAMATION ?\n    Ne montre pas ce raisonnement au client. Envoie uniquement le message final.\n  </thinking_process>\n\n  <flow>\n\n    <step id=\"1\" name=\"Identification\">\n      Toujours en tout premier message, sans exception.\n      Message exact :\n      \"Bonjour 👋 Je suis Kash, ton assistant SportCash ! Pour commencer, donne-moi ton email ou ton numéro de téléphone associé à ton compte.\"\n      → Enregistre l'identifiant. Ne le redemande plus jamais.\n    </step>\n\n    <step id=\"2\" name=\"Compréhension du problème\">\n      Après identification :\n      \"C'est noté ✅ Dis-moi, c'est quoi ton problème ?\"\n      → Détermine : canal + type de réclamation.\n      Canaux possibles : application | site_web | ussd | point_de_vente\n    </step>\n\n    <step id=\"3\" name=\"Collecte d'informations\">\n      Collecte UNE information à la fois, naturellement.\n      Adapte les questions selon le canal et le type détectés.\n\n      <canal name=\"application_ou_site_web\">\n        <type name=\"echec_rechargement_retrait\">\n          Collecter dans l'ordre : ID client ou pseudo → numéro utilisé → référence reçu → montant\n        </type>\n        <type name=\"gains_non_reverses_ou_pari_non_visible\">\n          Collecter : ID client → montant → référence reçu\n        </type>\n        <type name=\"compte_bloque_suspendu\" priorite=\"haute\">\n          Collecter : ID client → message d'erreur exact\n          → Déclencher ESCALADE immédiatement après.\n        </type>\n        <type name=\"modifier_numero_email\">\n          Collecter : ID client → ancienne donnée → nouvelle donnée\n        </type>\n        <type name=\"suppression_cloture\">\n          Collecter : ID client\n          → Informer : \"Pour une clôture, notre équipe aura besoin d'une CNI et d'un courrier. Ça sera demandé lors du traitement.\"\n        </type>\n        <type name=\"deplafonnement\">\n          Collecter : ID client uniquement\n        </type>\n        <type name=\"autre\">\n          Demander une description libre.\n        </type>\n      </canal>\n\n      <canal name=\"ussd\">\n        <type name=\"gains_ou_pari_non_visible\">\n          Collecter : référence ticket → montant → date et heure exactes\n        </type>\n        <type name=\"autre\">\n          Demander une description libre.\n        </type>\n      </canal>\n\n      <canal name=\"point_de_vente\">\n        Tous types — collecter dans l'ordre :\n        référence ticket → numéro client → nom du point de vente → commune et quartier → description du problème\n      </canal>\n    </step>\n\n    <step id=\"4\" name=\"Confirmation\">\n      Résumé court et naturel de tout ce qui a été collecté.\n      Terminer par : \"C'est bon pour toi ?\"\n      → Si le client corrige quelque chose, mettre à jour et re-confirmer.\n    </step>\n\n    <step id=\"5\" name=\"Clôture\">\n      Dès confirmation du client, générer le signal RECLAMATION puis envoyer :\n      \"✅ C'est enregistré ! Ta réclamation a bien été reçue sous la référence **{autoRef}**. Notre équipe s'en occupe, tu peux suivre l'avancement dans ton espace. 🙌\"\n    </step>\n\n  </flow>\n\n  <cas_speciaux>\n\n    <cas name=\"compte_suspendu\">\n      Message : \"Je peux t'aider. La raison la plus fréquente c'est une vérification manquante. Tu veux qu'on lance ça maintenant ?\"\n      → Oui → signal ESCALADE\n      → Veut parler à un humain → signal ESCALADE immédiat\n    </cas>\n\n    <cas name=\"compte_bloque\" priorite=\"haute\">\n      Collecter immédiatement : nom complet → date de naissance → ID client\n      → Signal ESCALADE immédiat dès que ces 3 éléments sont obtenus.\n    </cas>\n\n    <cas name=\"client_en_colere\">\n      Une phrase courte d'empathie, puis retour au flow.\n      Exemples :\n      \"Je comprends, c'est vraiment frustrant. 💪 On va régler ça.\"\n      \"C'est normal d'être chaud dans cette situation. On s'en occupe maintenant.\"\n    </cas>\n\n  </cas_speciaux>\n\n  <signals>\n    IMPORTANT — Règles de génération des signaux :\n    - Les signaux sont invisibles pour le client. Ils sont placés à la fin du message, après le texte visible.\n    - Ne génère un signal que lorsque toutes les informations requises sont collectées et confirmées.\n    - Respecte exactement la structure JSON ci-dessous. Aucun champ inventé. Aucun champ manquant.\n    - Pour les champs non renseignés, utilise la valeur null (pas de chaîne vide, pas d'omission).\n\n    <signal name=\"RECLAMATION\">\n      Déclenché à l'étape 5 uniquement, après confirmation du client.\n      [[RECLAMATION]]\n      {\n        \"action\": \"save_complaint\",\n        \"identifiant\": \"EMAIL_OU_TEL\",\n        \"canal\": \"application|site_web|ussd|point_de_vente\",\n        \"type\": \"TYPE_RECLAMATION\",\n        \"infos\": \"RESUME_CONCIS_DES_INFOS_COLLECTEES\",\n        \"priorite\": \"normale|haute\"\n      }\n      [[/RECLAMATION]]\n    </signal>\n\n    <signal name=\"ESCALADE\">\n      Déclenché immédiatement dans les cas : compte bloqué (haute priorité), compte suspendu confirmé, demande humain explicite.\n      [[ESCALADE]]\n      {\n        \"action\": \"escalate\",\n        \"identifiant\": \"EMAIL_OU_TEL\",\n        \"raison\": \"RAISON_COURTE\",\n        \"resume\": \"RESUME_FACTUEL_DE_LA_CONVERSATION\"\n      }\n      [[/ESCALADE]]\n    </signal>\n\n  </signals>\n\n</system>"
+        }
+      },
+      "id": "e070fcae-5ade-4df6-8694-22660d714427",
+      "name": "Kash AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst raw = items[0].json.output || items[0].json.text || '';\nconsole.log('[Détecter signal] Réponse brute (100 chars):', raw.substring(0, 100));\n\nconst reclamationMatch = raw.match(/\\[\\[RECLAMATION\\]\\](.*?)\\[\\[\\/RECLAMATION\\]\\]/s);\nconst escaladeMatch = raw.match(/\\[\\[ESCALADE\\]\\](.*?)\\[\\[\\/ESCALADE\\]\\]/s);\n\nlet signal = null;\nlet signalType = 'none';\n\nif (escaladeMatch) {\n  try {\n    signal = JSON.parse(escaladeMatch[1].trim());\n    signalType = 'escalade';\n  } catch(e) { console.error('[Détecter signal] Erreur parse ESCALADE:', e.message); }\n} else if (reclamationMatch) {\n  try {\n    signal = JSON.parse(reclamationMatch[1].trim());\n    signalType = 'reclamation';\n  } catch(e) { console.error('[Détecter signal] Erreur parse RECLAMATION:', e.message); }\n}\n\nconst cleanMessage = raw\n  .replace(/\\[\\[RECLAMATION\\]\\].*?\\[\\[\\/RECLAMATION\\]\\]/s, '')\n  .replace(/\\[\\[ESCALADE\\]\\].*?\\[\\[\\/ESCALADE\\]\\]/s, '')\n  .trim();\n\nconsole.log('[Détecter signal] Type:', signalType);\n\nreturn [{ json: { cleanMessage, signalType, signal, sender: $('Extraire message').item.json.sender } }];"
+      },
+      "id": "ba1e27b3-6d40-44b6-8bd7-4cd0257cfd96",
+      "name": "Détecter signal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1072, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.signalType }}",
+              "value2": "escalade"
+            }
+          ]
+        }
+      },
+      "id": "7ff53046-fc7e-42a7-a1e2-bd9ac79d6d98",
+      "name": "IF Escalade ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1328, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/escalades",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"{{ $json.signal.action }}\",\n  \"identifiant\": \"{{ $json.signal.identifiant }}\",\n  \"raison\": \"{{ $json.signal.raison }}\",\n  \"resume\": \"{{ $json.signal.resume }}\",\n  \"sender\": \"{{ $json.sender }}\"\n}",
+        "options": {}
+      },
+      "id": "dda72d28-3e97-4f37-a448-a284fa3b35ec",
+      "name": "API Laravel — Créer escalade",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1584, 160]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "name": "cleanMessage",
+              "value": "={{ $('Détecter signal').item.json.cleanMessage }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1e2d3c4-b5a6-7890-1234-567890abcdef",
+      "name": "Préparer msg après escalade",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1840, 160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.signalType }}",
+              "value2": "reclamation"
+            }
+          ]
+        }
+      },
+      "id": "93d0c319-a076-478a-a6cf-6b40ed60ed0f",
+      "name": "IF Réclamation ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1584, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/reclamations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"{{ $json.signal.action }}\",\n  \"identifiant\": \"{{ $json.signal.identifiant }}\",\n  \"canal\": \"{{ $json.signal.canal }}\",\n  \"type\": \"{{ $json.signal.type }}\",\n  \"infos\": \"{{ $json.signal.infos }}\",\n  \"priorite\": \"{{ $json.signal.priorite }}\",\n  \"sender\": \"{{ $json.sender }}\"\n}",
+        "options": {}
+      },
+      "id": "d475d4fc-6a5f-4a9b-86c8-fee3303fd559",
+      "name": "API Laravel — Créer réclamation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1840, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const laravelResponse = $input.first().json;\nconst autoRef = laravelResponse.reference || laravelResponse.autoRef || laravelResponse.id || ('REC-' + Date.now());\nconst rawMessage = $('Détecter signal').item.json.cleanMessage;\nconst sender = $('Détecter signal').item.json.sender;\nconst finalMessage = rawMessage.replace('{autoRef}', autoRef);\nreturn [{ json: { cleanMessage: finalMessage, sender, autoRef } }];"
+      },
+      "id": "78bb0c38-597f-4064-a75b-cb89eaaa82ac",
+      "name": "Injecter autoRef",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2096, 320]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+              "name": "cleanMessage",
+              "value": "={{ $('Détecter signal').item.json.cleanMessage }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0f0a0c3e-cfdd-4234-a6d3-a37fc6a7fe5e",
+      "name": "Préparer msg simple",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1840, 560]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "sender",      "value": "={{ $('Extraire message').item.json.sender }}" },
+            { "name": "direction",   "value": "outbound" },
+            { "name": "content",     "value": "={{ $json.cleanMessage }}" },
+            { "name": "signal_type", "value": "={{ $('Détecter signal').item.json.signalType }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-4444-5555-6666-777788889999",
+      "name": "Log réponse bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2320, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/ACeb2a354d3e492f03dc2fb2b4e7d1a0e7/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic QUNlYjJhMzU0ZDNlNDkyZjAzZGMyZmIyYjRlN2QxYTBlNzowNmVkOTBkNWE2NGVhYzI0Y2NlMDIyMGM1MTIyYjlmNA=="
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "MessagingServiceSid",
+              "value": "MGbab7979d55171535f9fdba06cfe28896"
+            },
+            {
+              "name": "To",
+              "value": "={{ $('Twilio Webhook').item.json.body.From }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.cleanMessage }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "id": "d2a63d8c-06d0-4aee-a12d-f21674766d78",
+      "name": "Envoyer réponse Twilio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2560, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "eee856f8-55e6-43b8-9807-e0abc94a48d0",
+      "name": "Répondre Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2800, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Twilio Webhook": {
+      "main": [[{ "node": "Extraire message", "type": "main", "index": 0 }]]
+    },
+    "Extraire message": {
+      "main": [
+        [
+          { "node": "Log message entrant",      "type": "main", "index": 0 },
+          { "node": "Vérifier escalade active", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Vérifier escalade active": {
+      "main": [[{ "node": "IF Déjà escaladé ?", "type": "main", "index": 0 }]]
+    },
+    "IF Déjà escaladé ?": {
+      "main": [
+        [{ "node": "Répondre Webhook", "type": "main", "index": 0 }],
+        [{ "node": "Kash AI Agent",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude Sonnet": {
+      "ai_languageModel": [[{ "node": "Kash AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Simple Memory": {
+      "ai_memory": [[{ "node": "Kash AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Kash AI Agent": {
+      "main": [[{ "node": "Détecter signal", "type": "main", "index": 0 }]]
+    },
+    "Détecter signal": {
+      "main": [[{ "node": "IF Escalade ?", "type": "main", "index": 0 }]]
+    },
+    "IF Escalade ?": {
+      "main": [
+        [{ "node": "API Laravel — Créer escalade", "type": "main", "index": 0 }],
+        [{ "node": "IF Réclamation ?",             "type": "main", "index": 0 }]
+      ]
+    },
+    "API Laravel — Créer escalade": {
+      "main": [[{ "node": "Préparer msg après escalade", "type": "main", "index": 0 }]]
+    },
+    "Préparer msg après escalade": {
+      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+    },
+    "IF Réclamation ?": {
+      "main": [
+        [{ "node": "API Laravel — Créer réclamation", "type": "main", "index": 0 }],
+        [{ "node": "Préparer msg simple",             "type": "main", "index": 0 }]
+      ]
+    },
+    "API Laravel — Créer réclamation": {
+      "main": [[{ "node": "Injecter autoRef", "type": "main", "index": 0 }]]
+    },
+    "Injecter autoRef": {
+      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+    },
+    "Préparer msg simple": {
+      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+    },
+    "Log réponse bot": {
+      "main": [[{ "node": "Envoyer réponse Twilio", "type": "main", "index": 0 }]]
+    },
+    "Envoyer réponse Twilio": {
+      "main": [[{ "node": "Répondre Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "033cea50-dfc3-4c16-bf36-a61dd2707453",
+  "meta": {
+    "instanceId": "314670d062bb25ab716a72c9476deb9d39922c28eaea2d899d7d0117a4f4eab7"
+  },
+  "id": "O8Rt34anzXdz3ngE",
+  "tags": []
+}

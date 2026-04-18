@@ -40,3 +40,11 @@ Route::post('/reclamations', [KashWebhookController::class, 'reclamation'])
 
 Route::post('/escalades', [KashWebhookController::class, 'escalade'])
     ->name('api.kash.escalade');
+
+// Vérification escalade active pour un sender (appelé par n8n avant l'IA)
+Route::get('/kash/escalade-active', [KashWebhookController::class, 'checkEscalade'])
+    ->name('api.kash.escalade.check');
+
+// Log des messages bot ↔ client (historique conversations)
+Route::post('/kash/messages', [KashWebhookController::class, 'logMessage'])
+    ->name('api.kash.messages.log');

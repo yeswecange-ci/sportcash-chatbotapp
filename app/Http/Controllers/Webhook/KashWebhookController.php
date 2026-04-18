@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
+use App\Models\BotEscalade;
+use App\Models\KashBotMessage;
 use App\Services\Kash\KashSignalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,6 +82,41 @@ class KashWebhookController extends Controller
             Log::error('[KASH WEBHOOK] Erreur ESCALADE', ['error' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    // ── GET /api/kash/escalade-active?sender=X ───────────────────────────────
+
+    public function checkEscalade(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sender = $request->get('sender', '');
+
+        $active = BotEscalade::where('sender', $sender)
+            ->whereIn('statut', ['en_attente', 'en_cours'])
+            ->exists();
+
+        return response()->json(['active' => $active]);
+    }
+
+    // ── POST /api/kash/messages ───────────────────────────────────────────────
+
+    public function logMessage(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        KashBotMessage::create([
+            'sender'      => $request->input('sender', ''),
+            'direction'   => $request->input('direction', 'inbound'),
+            'content'     => $request->input('content', ''),
+            'signal_type' => $request->input('signal_type', 'none'),
+        ]);
+
+        return response()->json(['ok' => true], 201);
     }
 
     // ── Auth ─────────────────────────────────────────────────────────────────

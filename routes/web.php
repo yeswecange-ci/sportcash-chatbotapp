@@ -17,6 +17,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Kash\DashboardController as KashDashboardController;
 use App\Http\Controllers\Kash\ReclamationController;
 use App\Http\Controllers\Kash\EscaladeController;
+use App\Http\Controllers\Kash\HistoriqueController;
 use Illuminate\Support\Facades\Route;
 
 // ── Route principale → login ──────────────────────────
@@ -232,6 +233,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('/reclamations/{reclamation}/statut', [ReclamationController::class, 'updateStatut'])->name('reclamations.statut');
         Route::patch('/reclamations/{reclamation}/assign', [ReclamationController::class, 'assign'])->name('reclamations.assign');
         Route::patch('/reclamations/{reclamation}/notes', [ReclamationController::class, 'updateNotes'])->name('reclamations.notes');
+
+        // Historique conversations bot
+        Route::get('/historique', [HistoriqueController::class, 'index'])->name('historique');
 
         // Escalades
         Route::get('/escalades', [EscaladeController::class, 'index'])->name('escalades.index');
