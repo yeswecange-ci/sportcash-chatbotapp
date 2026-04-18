@@ -198,7 +198,7 @@
                     </div>
 
                     {{-- Menu déroulant Bot Tracking --}}
-  <div>
+  <!-- <div>
       <button onclick="toggleBotTrackingMenu()" id="bot-tracking-menu-btn"
               class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition
                      {{ request()->routeIs('bot-tracking.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -254,7 +254,7 @@
               Analytics
           </a>
       </div>
-  </div>
+  </div> -->
 
                     {{-- Menu déroulant Kash Bot --}}
                     <div>

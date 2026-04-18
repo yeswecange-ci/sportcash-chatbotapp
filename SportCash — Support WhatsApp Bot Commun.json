@@ -477,6 +477,45 @@
         2800,
         300
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/forward-to-support",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bot-Secret",
+              "value": "472b14eb710b5d7ce08bc2b670505b6cb6928398ac834f4f9198d071badf193b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sender",
+              "value": "={{ $('Extraire message').item.json.sender }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Extraire message').item.json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-5555-6666-7777-888899990000",
+      "name": "Transférer vers Support",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        160
+      ],
+      "continueOnFail": true
     }
   ],
   "pinData": {},
@@ -523,7 +562,7 @@
       "main": [
         [
           {
-            "node": "Répondre Webhook",
+            "node": "Transférer vers Support",
             "type": "main",
             "index": 0
           }
@@ -617,6 +656,11 @@
             "node": "Log réponse bot",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Envoyer réponse Twilio",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -657,6 +701,11 @@
             "node": "Log réponse bot",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Envoyer réponse Twilio",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -668,13 +717,7 @@
             "node": "Log réponse bot",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Log réponse bot": {
-      "main": [
-        [
+          },
           {
             "node": "Envoyer réponse Twilio",
             "type": "main",
@@ -684,6 +727,17 @@
       ]
     },
     "Envoyer réponse Twilio": {
+      "main": [
+        [
+          {
+            "node": "Répondre Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transférer vers Support": {
       "main": [
         [
           {

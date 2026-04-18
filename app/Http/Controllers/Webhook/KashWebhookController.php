@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Webhook;
 use App\Http\Controllers\Controller;
 use App\Models\BotEscalade;
 use App\Models\KashBotMessage;
+use App\Services\Chatwoot\ChatwootClient;
 use App\Services\Kash\KashSignalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -117,6 +118,49 @@ class KashWebhookController extends Controller
         ]);
 
         return response()->json(['ok' => true], 201);
+    }
+
+    // ── POST /api/kash/forward-to-support ────────────────────────────────────
+
+    public function forwardToSupport(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sender  = $request->input('sender', '');
+        $message = $request->input('message', '');
+
+        $escalade = BotEscalade::where('sender', $sender)
+            ->whereIn('statut', ['en_attente', 'en_cours'])
+            ->whereNotNull('chatwoot_conversation_id')
+            ->latest()
+            ->first();
+
+        if (!$escalade) {
+            return response()->json(['ok' => false, 'reason' => 'no_escalade'], 200);
+        }
+
+        try {
+            $chatwoot = new ChatwootClient();
+            $chatwoot->sendMessage(
+                conversationId: $escalade->chatwoot_conversation_id,
+                content:        $message,
+                isPrivate:      false,
+                messageType:    'incoming',
+            );
+
+            Log::info('[KASH] Message client transféré vers Chatwoot', [
+                'sender'                  => $sender,
+                'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id,
+            ]);
+
+            return response()->json(['ok' => true, 'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id]);
+
+        } catch (\Exception $e) {
+            Log::error('[KASH] Erreur forward vers Chatwoot', ['error' => $e->getMessage()]);
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     // ── Auth ─────────────────────────────────────────────────────────────────

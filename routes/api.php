@@ -48,3 +48,7 @@ Route::get('/kash/escalade-active', [KashWebhookController::class, 'checkEscalad
 // Log des messages bot ↔ client (historique conversations)
 Route::post('/kash/messages', [KashWebhookController::class, 'logMessage'])
     ->name('api.kash.messages.log');
+
+// Transfert message client vers Chatwoot quand escalade active
+Route::post('/kash/forward-to-support', [KashWebhookController::class, 'forwardToSupport'])
+    ->name('api.kash.forward');
