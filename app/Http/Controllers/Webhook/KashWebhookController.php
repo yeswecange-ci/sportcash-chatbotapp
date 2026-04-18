@@ -133,32 +133,43 @@ class KashWebhookController extends Controller
 
         $escalade = BotEscalade::where('sender', $sender)
             ->whereIn('statut', ['en_attente', 'en_cours'])
-            ->whereNotNull('chatwoot_conversation_id')
             ->latest()
             ->first();
 
         if (!$escalade) {
+            Log::info('[KASH] forwardToSupport: aucune escalade active', ['sender' => $sender]);
             return response()->json(['ok' => false, 'reason' => 'no_escalade'], 200);
+        }
+
+        if (!$escalade->chatwoot_conversation_id) {
+            Log::warning('[KASH] forwardToSupport: escalade sans chatwoot_conversation_id', [
+                'reference' => $escalade->reference,
+                'sender'    => $sender,
+            ]);
+            return response()->json(['ok' => false, 'reason' => 'no_chatwoot_conversation'], 200);
         }
 
         try {
             $chatwoot = new ChatwootClient();
+            $phone    = str_replace('whatsapp:', '', $sender);
             $chatwoot->sendMessage(
                 conversationId: $escalade->chatwoot_conversation_id,
-                content:        $message,
-                isPrivate:      false,
-                messageType:    'incoming',
+                content:        "📱 *{$phone} :* {$message}",
+                isPrivate:      true,
             );
 
             Log::info('[KASH] Message client transféré vers Chatwoot', [
-                'sender'                  => $sender,
+                'sender'                   => $sender,
                 'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id,
             ]);
 
             return response()->json(['ok' => true, 'chatwoot_conversation_id' => $escalade->chatwoot_conversation_id]);
 
         } catch (\Exception $e) {
-            Log::error('[KASH] Erreur forward vers Chatwoot', ['error' => $e->getMessage()]);
+            Log::error('[KASH] Erreur forward vers Chatwoot', [
+                'sender' => $sender,
+                'error'  => $e->getMessage(),
+            ]);
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
         }
     }
