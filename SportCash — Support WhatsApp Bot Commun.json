@@ -12,7 +12,10 @@
       "name": "Twilio Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-144, 300],
+      "position": [
+        -144,
+        300
+      ],
       "webhookId": "4d3672ee-af0f-4f3b-828f-d63ae6b92d06"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Extraire message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [80, 300]
+      "position": [
+        80,
+        300
+      ]
     },
     {
       "parameters": {
@@ -42,10 +48,22 @@
         "contentType": "json",
         "bodyParameters": {
           "parameters": [
-            { "name": "sender",      "value": "={{ $json.sender }}" },
-            { "name": "direction",   "value": "inbound" },
-            { "name": "content",     "value": "={{ $json.message }}" },
-            { "name": "signal_type", "value": "none" }
+            {
+              "name": "sender",
+              "value": "={{ $json.sender }}"
+            },
+            {
+              "name": "direction",
+              "value": "inbound"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "signal_type",
+              "value": "none"
+            }
           ]
         },
         "options": {}
@@ -54,7 +72,11 @@
       "name": "Log message entrant",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [80, 500]
+      "position": [
+        80,
+        500
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -72,7 +94,10 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "sender", "value": "={{ $json.sender }}" }
+            {
+              "name": "sender",
+              "value": "={{ $json.sender }}"
+            }
           ]
         },
         "options": {}
@@ -81,15 +106,20 @@
       "name": "Vérifier escalade active",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [320, 300]
+      "position": [
+        320,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
-          "boolean": [
+          "string": [
             {
-              "value1": "={{ $json.active }}",
-              "value2": true
+              "value1": "={{ String($json.active ?? false) }}",
+              "operation": "equal",
+              "value2": "true"
             }
           ]
         }
@@ -98,7 +128,10 @@
       "name": "IF Déjà escaladé ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [560, 300]
+      "position": [
+        560,
+        300
+      ]
     },
     {
       "parameters": {
@@ -114,7 +147,10 @@
       "name": "Claude Sonnet",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [800, 500],
+      "position": [
+        800,
+        500
+      ],
       "credentials": {
         "anthropicApi": {
           "id": "1qyscBfj8V8rJRPM",
@@ -132,7 +168,10 @@
       "name": "Simple Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [1040, 500]
+      "position": [
+        1040,
+        500
+      ]
     },
     {
       "parameters": {
@@ -146,7 +185,10 @@
       "name": "Kash AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [800, 300]
+      "position": [
+        800,
+        300
+      ]
     },
     {
       "parameters": {
@@ -156,7 +198,10 @@
       "name": "Détecter signal",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1072, 300]
+      "position": [
+        1072,
+        300
+      ]
     },
     {
       "parameters": {
@@ -173,7 +218,10 @@
       "name": "IF Escalade ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1328, 300]
+      "position": [
+        1328,
+        300
+      ]
     },
     {
       "parameters": {
@@ -201,7 +249,10 @@
       "name": "API Laravel — Créer escalade",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1584, 160]
+      "position": [
+        1584,
+        160
+      ]
     },
     {
       "parameters": {
@@ -223,7 +274,10 @@
       "name": "Préparer msg après escalade",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
-      "position": [1840, 160]
+      "position": [
+        1840,
+        160
+      ]
     },
     {
       "parameters": {
@@ -240,7 +294,10 @@
       "name": "IF Réclamation ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1584, 440]
+      "position": [
+        1584,
+        440
+      ]
     },
     {
       "parameters": {
@@ -268,7 +325,10 @@
       "name": "API Laravel — Créer réclamation",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1840, 320]
+      "position": [
+        1840,
+        320
+      ]
     },
     {
       "parameters": {
@@ -278,7 +338,10 @@
       "name": "Injecter autoRef",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2096, 320]
+      "position": [
+        2096,
+        320
+      ]
     },
     {
       "parameters": {
@@ -300,7 +363,10 @@
       "name": "Préparer msg simple",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
-      "position": [1840, 560]
+      "position": [
+        1840,
+        560
+      ]
     },
     {
       "parameters": {
@@ -319,10 +385,22 @@
         "contentType": "json",
         "bodyParameters": {
           "parameters": [
-            { "name": "sender",      "value": "={{ $('Extraire message').item.json.sender }}" },
-            { "name": "direction",   "value": "outbound" },
-            { "name": "content",     "value": "={{ $json.cleanMessage }}" },
-            { "name": "signal_type", "value": "={{ $('Détecter signal').item.json.signalType }}" }
+            {
+              "name": "sender",
+              "value": "={{ $('Extraire message').item.json.sender }}"
+            },
+            {
+              "name": "direction",
+              "value": "outbound"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.cleanMessage }}"
+            },
+            {
+              "name": "signal_type",
+              "value": "={{ $('Détecter signal').item.json.signalType }}"
+            }
           ]
         },
         "options": {}
@@ -331,7 +409,11 @@
       "name": "Log réponse bot",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [2320, 380]
+      "position": [
+        2320,
+        380
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -374,7 +456,10 @@
       "name": "Envoyer réponse Twilio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [2560, 380]
+      "position": [
+        2560,
+        380
+      ]
     },
     {
       "parameters": {
@@ -388,75 +473,226 @@
       "name": "Répondre Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2800, 300]
+      "position": [
+        2800,
+        300
+      ]
     }
   ],
   "pinData": {},
   "connections": {
     "Twilio Webhook": {
-      "main": [[{ "node": "Extraire message", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extraire message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extraire message": {
       "main": [
         [
-          { "node": "Log message entrant",      "type": "main", "index": 0 },
-          { "node": "Vérifier escalade active", "type": "main", "index": 0 }
+          {
+            "node": "Log message entrant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Vérifier escalade active",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Vérifier escalade active": {
-      "main": [[{ "node": "IF Déjà escaladé ?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF Déjà escaladé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Déjà escaladé ?": {
       "main": [
-        [{ "node": "Répondre Webhook", "type": "main", "index": 0 }],
-        [{ "node": "Kash AI Agent",    "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Répondre Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kash AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Claude Sonnet": {
-      "ai_languageModel": [[{ "node": "Kash AI Agent", "type": "ai_languageModel", "index": 0 }]]
+      "ai_languageModel": [
+        [
+          {
+            "node": "Kash AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Simple Memory": {
-      "ai_memory": [[{ "node": "Kash AI Agent", "type": "ai_memory", "index": 0 }]]
+      "ai_memory": [
+        [
+          {
+            "node": "Kash AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Kash AI Agent": {
-      "main": [[{ "node": "Détecter signal", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Détecter signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Détecter signal": {
-      "main": [[{ "node": "IF Escalade ?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF Escalade ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Escalade ?": {
       "main": [
-        [{ "node": "API Laravel — Créer escalade", "type": "main", "index": 0 }],
-        [{ "node": "IF Réclamation ?",             "type": "main", "index": 0 }]
+        [
+          {
+            "node": "API Laravel — Créer escalade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Réclamation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "API Laravel — Créer escalade": {
-      "main": [[{ "node": "Préparer msg après escalade", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Préparer msg après escalade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Préparer msg après escalade": {
-      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log réponse bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Réclamation ?": {
       "main": [
-        [{ "node": "API Laravel — Créer réclamation", "type": "main", "index": 0 }],
-        [{ "node": "Préparer msg simple",             "type": "main", "index": 0 }]
+        [
+          {
+            "node": "API Laravel — Créer réclamation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer msg simple",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "API Laravel — Créer réclamation": {
-      "main": [[{ "node": "Injecter autoRef", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Injecter autoRef",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Injecter autoRef": {
-      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log réponse bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Préparer msg simple": {
-      "main": [[{ "node": "Log réponse bot", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log réponse bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Log réponse bot": {
-      "main": [[{ "node": "Envoyer réponse Twilio", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Envoyer réponse Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Envoyer réponse Twilio": {
-      "main": [[{ "node": "Répondre Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Répondre Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
