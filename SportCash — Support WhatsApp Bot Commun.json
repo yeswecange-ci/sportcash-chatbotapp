@@ -81,7 +81,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/escalade-active",
+        "url": "https://whatscrm-by-ywc.ywcdigital.com/api/kash/bot-actif",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -103,7 +103,7 @@
         "options": {}
       },
       "id": "b2c3d4e5-2222-3333-4444-555566667777",
-      "name": "Vérifier escalade active",
+      "name": "Vérifier bot actif",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
@@ -117,15 +117,15 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ String($json.active ?? false) }}",
+              "value1": "={{ String($json.bot_actif ?? true) }}",
               "operation": "equal",
-              "value2": "true"
+              "value2": "false"
             }
           ]
         }
       },
       "id": "c3d4e5f6-3333-4444-5555-666677778888",
-      "name": "IF Déjà escaladé ?",
+      "name": "IF Ticket ouvert ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
@@ -540,25 +540,25 @@
             "index": 0
           },
           {
-            "node": "Vérifier escalade active",
+            "node": "Vérifier bot actif",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Vérifier escalade active": {
+    "Vérifier bot actif": {
       "main": [
         [
           {
-            "node": "IF Déjà escaladé ?",
+            "node": "IF Ticket ouvert ?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "IF Déjà escaladé ?": {
+    "IF Ticket ouvert ?": {
       "main": [
         [
           {

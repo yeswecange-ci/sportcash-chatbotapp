@@ -20,6 +20,7 @@ class BotReclamation extends Model
         'statut',
         'assigned_to',
         'notes',
+        'chatwoot_conversation_id',
     ];
 
     // ── Relations ────────────────────────────────────────────────────────────

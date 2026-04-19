@@ -45,6 +45,16 @@ Route::post('/escalades', [KashWebhookController::class, 'escalade'])
 Route::get('/kash/escalade-active', [KashWebhookController::class, 'checkEscalade'])
     ->name('api.kash.escalade.check');
 
+// Vérification réclamation active pour un sender
+Route::get('/kash/reclamation-active', [KashWebhookController::class, 'checkReclamation'])
+    ->name('api.kash.reclamation.check');
+
+// Vérification unifiée : le bot doit-il répondre ?
+// bot_actif=false → ticket ouvert, bot silencieux (forward to support)
+// bot_actif=true  → aucun ticket ouvert (ou tous résolus), bot répond
+Route::get('/kash/bot-actif', [KashWebhookController::class, 'checkBotActif'])
+    ->name('api.kash.bot.actif');
+
 // Log des messages bot ↔ client (historique conversations)
 Route::post('/kash/messages', [KashWebhookController::class, 'logMessage'])
     ->name('api.kash.messages.log');

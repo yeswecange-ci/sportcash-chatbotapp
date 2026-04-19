@@ -15,6 +15,14 @@
                 <h1 class="text-xl font-bold text-gray-900 font-mono">{{ $reclamation->reference }}</h1>
                 <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $reclamation->statutBadgeClass() }}">{{ $reclamation->statutLabel() }}</span>
                 <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $reclamation->prioriteBadgeClass() }}">{{ $reclamation->prioriteLabel() }}</span>
+                @if($reclamation->chatwoot_conversation_id)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Chatwoot #{{ $reclamation->chatwoot_conversation_id }}
+                </span>
+                @else
+                <span class="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700">Chatwoot non lié</span>
+                @endif
             </div>
             <p class="text-sm text-gray-500 mt-0.5">Créée {{ $reclamation->created_at->format('d/m/Y à H:i') }}</p>
         </div>
@@ -85,6 +93,9 @@
                         @endforeach
                     </select>
                 </form>
+                <p class="text-[10px] text-gray-400 mt-2">
+                    Mis à jour automatiquement depuis Chatwoot si lié.
+                </p>
             </div>
 
             {{-- Assignation --}}
@@ -106,6 +117,10 @@
             <div class="bg-white rounded-xl border border-gray-200 p-4">
                 <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Détails</h3>
                 <dl class="space-y-2 text-xs">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-400">Conversation Chatwoot</dt>
+                        <dd class="text-gray-700">{{ $reclamation->chatwoot_conversation_id ? '#'.$reclamation->chatwoot_conversation_id : '—' }}</dd>
+                    </div>
                     <div class="flex justify-between">
                         <dt class="text-gray-400">Priorité</dt>
                         <dd><span class="px-2 py-0.5 rounded-full font-medium {{ $reclamation->prioriteBadgeClass() }}">{{ $reclamation->prioriteLabel() }}</span></dd>

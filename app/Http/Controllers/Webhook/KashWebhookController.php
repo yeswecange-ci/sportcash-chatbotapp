@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
 use App\Models\BotEscalade;
+use App\Models\BotReclamation;
 use App\Models\KashBotMessage;
 use App\Services\Chatwoot\ChatwootClient;
 use App\Services\Kash\KashSignalService;
@@ -102,6 +103,52 @@ class KashWebhookController extends Controller
         return response()->json(['active' => $active]);
     }
 
+    // ── GET /api/kash/reclamation-active?sender=X ────────────────────────────
+
+    public function checkReclamation(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sender = $request->get('sender', '');
+
+        $active = BotReclamation::where('sender', $sender)
+            ->whereIn('statut', ['en_attente', 'en_cours'])
+            ->exists();
+
+        return response()->json(['active' => $active]);
+    }
+
+    // ── GET /api/kash/bot-actif?sender=X ─────────────────────────────────────
+    //
+    // Logique :
+    //   - Si un ticket (escalade ou réclamation) est ouvert (en_attente|en_cours)
+    //     → bot_actif=false  : le bot se tait, les messages partent vers Chatwoot
+    //   - Si aucun ticket ouvert (pas de ticket, ou tous résolus/fermés)
+    //     → bot_actif=true   : le bot reprend la main
+
+    public function checkBotActif(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sender = $request->get('sender', '');
+
+        $ticketOuvert = BotEscalade::where('sender', $sender)
+            ->whereIn('statut', ['en_attente', 'en_cours'])
+            ->exists()
+            || BotReclamation::where('sender', $sender)
+                ->whereIn('statut', ['en_attente', 'en_cours'])
+                ->exists();
+
+        return response()->json([
+            'bot_actif' => !$ticketOuvert,
+            'raison'    => $ticketOuvert ? 'ticket_ouvert' : 'aucun_ticket_ouvert',
+        ]);
+    }
+
     // ── POST /api/kash/messages ───────────────────────────────────────────────
 
     public function logMessage(Request $request): JsonResponse
@@ -131,19 +178,24 @@ class KashWebhookController extends Controller
         $sender  = $request->input('sender', '');
         $message = $request->input('message', '');
 
-        $escalade = BotEscalade::where('sender', $sender)
+        // Chercher un ticket actif : escalade ou réclamation
+        $ticket = BotEscalade::where('sender', $sender)
             ->whereIn('statut', ['en_attente', 'en_cours'])
             ->latest()
-            ->first();
+            ->first()
+            ?? BotReclamation::where('sender', $sender)
+                ->whereIn('statut', ['en_attente', 'en_cours'])
+                ->latest()
+                ->first();
 
-        if (!$escalade) {
-            Log::info('[KASH] forwardToSupport: aucune escalade active', ['sender' => $sender]);
-            return response()->json(['ok' => false, 'reason' => 'no_escalade'], 200);
+        if (!$ticket) {
+            Log::info('[KASH] forwardToSupport: aucun ticket actif', ['sender' => $sender]);
+            return response()->json(['ok' => false, 'reason' => 'no_active_ticket'], 200);
         }
 
-        if (!$escalade->chatwoot_conversation_id) {
-            Log::warning('[KASH] forwardToSupport: escalade sans chatwoot_conversation_id', [
-                'reference' => $escalade->reference,
+        if (!$ticket->chatwoot_conversation_id) {
+            Log::warning('[KASH] forwardToSupport: ticket sans chatwoot_conversation_id', [
+                'reference' => $ticket->reference,
                 'sender'    => $sender,
             ]);
             return response()->json(['ok' => false, 'reason' => 'no_chatwoot_conversation'], 200);
@@ -151,13 +203,11 @@ class KashWebhookController extends Controller
 
         try {
             $chatwoot = new ChatwootClient();
-            $convId   = $escalade->chatwoot_conversation_id;
+            $convId   = $ticket->chatwoot_conversation_id;
 
             try {
-                // Tenter de créer un vrai message entrant (message_type=0)
                 $chatwoot->createIncomingMessage($convId, $message);
             } catch (\Exception $inner) {
-                // Fallback : note privée si Chatwoot refuse le type incoming
                 Log::warning('[KASH] createIncomingMessage échoué, fallback note privée', [
                     'error' => $inner->getMessage(),
                 ]);
@@ -171,6 +221,7 @@ class KashWebhookController extends Controller
 
             Log::info('[KASH] Message client transféré vers Chatwoot', [
                 'sender'                   => $sender,
+                'reference'                => $ticket->reference,
                 'chatwoot_conversation_id' => $convId,
             ]);
 
