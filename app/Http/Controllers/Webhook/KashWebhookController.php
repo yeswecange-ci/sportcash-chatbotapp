@@ -136,12 +136,7 @@ class KashWebhookController extends Controller
 
         $sender = $request->get('sender', '');
 
-        $ticketOuvert = BotEscalade::where('sender', $sender)
-            ->whereIn('statut', ['en_attente', 'en_cours'])
-            ->exists()
-            || BotReclamation::where('sender', $sender)
-                ->whereIn('statut', ['en_attente', 'en_cours'])
-                ->exists();
+        $ticketOuvert = $this->kash->hasActiveTicket($sender);
 
         return response()->json([
             'bot_actif' => !$ticketOuvert,

@@ -104,6 +104,67 @@ class KashSignalService
         return $escalade;
     }
 
+    // ── Vérification ticket actif (source de vérité = Chatwoot) ─────────────
+
+    /**
+     * Retourne true si le sender a un ticket ouvert (en_attente|en_cours).
+     * Si le ticket a un chatwoot_conversation_id, on interroge l'API Chatwoot
+     * en temps réel pour avoir le vrai statut — pas le cache local.
+     * Le statut local est mis à jour en cas de désynchronisation.
+     */
+    public function hasActiveTicket(string $sender): bool
+    {
+        $models = [BotEscalade::class, BotReclamation::class];
+
+        foreach ($models as $modelClass) {
+            $ticket = $modelClass::where('sender', $sender)
+                ->whereIn('statut', ['en_attente', 'en_cours'])
+                ->latest()
+                ->first();
+
+            if (!$ticket) {
+                continue;
+            }
+
+            // Pas de conversation Chatwoot liée → on fait confiance au statut local
+            if (!$ticket->chatwoot_conversation_id) {
+                return true;
+            }
+
+            // Interroger Chatwoot pour le statut réel
+            try {
+                $conversation = $this->chatwoot->getConversation($ticket->chatwoot_conversation_id);
+                $chatwootStatus = $conversation['status'] ?? null;
+
+                if ($chatwootStatus === 'resolved') {
+                    // Chatwoot dit résolu → on met à jour le local et on laisse le bot répondre
+                    $ticket->update(['statut' => 'resolue']);
+
+                    Log::info('[KASH] Ticket resync depuis Chatwoot : résolu', [
+                        'reference'               => $ticket->reference,
+                        'chatwoot_conversation_id' => $ticket->chatwoot_conversation_id,
+                    ]);
+
+                    continue; // pas actif
+                }
+
+                // open|pending|snoozed → ticket toujours ouvert
+                return true;
+
+            } catch (\Exception $e) {
+                Log::warning('[KASH] Impossible de vérifier statut Chatwoot, fallback local', [
+                    'reference' => $ticket->reference,
+                    'error'     => $e->getMessage(),
+                ]);
+
+                // En cas d'erreur API, on conserve le statut local
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // ── Mise à jour statut via Chatwoot webhook ───────────────────────────────
 
     public function syncEscaladeFromChatwoot(int $chatwootConversationId, string $chatwootStatus): void
