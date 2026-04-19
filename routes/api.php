@@ -49,6 +49,10 @@ Route::get('/kash/escalade-active', [KashWebhookController::class, 'checkEscalad
 Route::get('/kash/reclamation-active', [KashWebhookController::class, 'checkReclamation'])
     ->name('api.kash.reclamation.check');
 
+// Profil client persistant (identifiant connu depuis les tickets précédents)
+Route::get('/kash/client-profil', [KashWebhookController::class, 'clientProfil'])
+    ->name('api.kash.client.profil');
+
 // Vérification unifiée : le bot doit-il répondre ?
 // bot_actif=false → ticket ouvert, bot silencieux (forward to support)
 // bot_actif=true  → aucun ticket ouvert (ou tous résolus), bot répond

@@ -231,6 +231,40 @@ class KashWebhookController extends Controller
         }
     }
 
+    // ── GET /api/kash/client-profil?sender=X ─────────────────────────────────
+    //
+    // Retourne l'identifiant connu du client (depuis ses tickets précédents)
+    // pour permettre à l'IA de ne pas le redemander.
+
+    public function clientProfil(Request $request): JsonResponse
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sender = $request->get('sender', '');
+
+        $lastTicket = BotReclamation::where('sender', $sender)
+            ->whereNotNull('identifiant')
+            ->where('identifiant', '!=', '')
+            ->latest()
+            ->first()
+            ?? BotEscalade::where('sender', $sender)
+                ->whereNotNull('identifiant')
+                ->where('identifiant', '!=', '')
+                ->latest()
+                ->first();
+
+        $nbTickets = BotReclamation::where('sender', $sender)->count()
+                   + BotEscalade::where('sender', $sender)->count();
+
+        return response()->json([
+            'found'       => !is_null($lastTicket),
+            'identifiant' => $lastTicket?->identifiant,
+            'nb_tickets'  => $nbTickets,
+        ]);
+    }
+
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     private function isAuthorized(Request $request): bool
